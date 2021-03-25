@@ -1,6 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
-use rusty_neat::{gene_pool::{GenePool, NodeType}, genome::Genome};
+use rusty_neat::{gene_pool::{GenePool}, genome::Genome};
 
 fn evaluate_large_flat(criterion: &mut Criterion) {
   let pool = create_large_flat_pool();
@@ -36,22 +36,30 @@ fn add_connection_to_minimal_genome(criterion: &mut Criterion) {
   criterion.bench_function("add connection to minimal genome", |b| b.iter(|| genome.add_connection(0, 1, 0)));
 }
 
+fn create_connection_in_minimal_pool(criterion: &mut Criterion) {
+  let mut pool = GenePool::new(0, 0);
+  let input = pool.create_input_node();
+  let output = pool.create_output_node();
+  criterion.bench_function("create connection in minimal pool", |b| b.iter(|| pool.create_connection(input, output)));
+}
+
+fn get_connection_from_minimal_pool(criterion: &mut Criterion) {
+  let mut pool = GenePool::new(0, 0);
+  let input = pool.create_input_node();
+  let output = pool.create_output_node();
+  pool.create_connection(input, output);
+  criterion.bench_function("get connection from minimal pool", |b| b.iter(|| pool.create_connection(input, output)));
+}
+
 fn create_large_flat_pool() -> GenePool {
   let mut pool = GenePool::new(0, 0);
-  let input1 = pool.create_node(0.0, NodeType::Input(0));
-  let hidden1 = pool.create_node(50.0, NodeType::Hidden);
-  let output1 = pool.create_node(100.0, NodeType::Output(0));
-  let output2 = pool.create_node(100.0, NodeType::Output(1));
-  pool.create_connection(input1, hidden1);
-  pool.create_connection(hidden1, output1);
-  pool.create_connection(hidden1, output2);
 
-  for i in 0..500 {
-    pool.create_node(0.0, NodeType::Input(i));
+  for _ in 0..500 {
+    pool.create_input_node();
   }
 
   for i in 0..500 {
-    pool.create_node(100.0, NodeType::Output(i));
+    pool.create_output_node();
 
     for j in 0..500 {
       pool.create_connection(j, i + 500);
@@ -63,5 +71,6 @@ fn create_large_flat_pool() -> GenePool {
 }
 
 criterion_group!(evaluation, evaluate_large_flat);
-criterion_group!(modification, create_genome_from_large_pool, create_empty_genome, add_node_to_empty_genome, add_connection_to_minimal_genome);
-criterion_main!(evaluation, modification);
+criterion_group!(pool, create_genome_from_large_pool, create_connection_in_minimal_pool, get_connection_from_minimal_pool);
+criterion_group!(genome, create_empty_genome, add_node_to_empty_genome, add_connection_to_minimal_genome);
+criterion_main!(evaluation, pool, genome);

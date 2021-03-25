@@ -1,29 +1,37 @@
-use std::collections::HashMap;
+use hashbrown::HashMap;
+use serde::{Serialize, Deserialize};
 
 use crate::genome::Genome;
 
+const INPUT_NODE_DEPTH: f64 = 0.0;
 const OUTPUT_NODE_DEPTH: f64 = 100.0;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GenePool {
-  pub nodes: Vec<Node>,
-  pub connections: HashMap<(usize, usize), usize>,
-  next_innovation: usize
+  pub nodes: Vec<Node>, // Liste aller Nodes
+  pub connections: Vec<Connection>, // Liste aller Nodes
+  #[serde(skip)]
+  pub connection_mappings: HashMap<Connection, usize>, // connection -> innovation
+  pub input_count: usize,
+  pub output_count: usize
 }
 
 impl GenePool {
   pub fn new(input_nodes: usize, output_nodes: usize) -> GenePool {
     let mut pool = GenePool {
       nodes: Vec::with_capacity(input_nodes + output_nodes),
-      connections: HashMap::new(),
-      next_innovation: 0
+      connection_mappings: HashMap::new(),
+      connections: Vec::new(),
+      input_count: 0,
+      output_count: 0
     };
 
-    for i in 0..input_nodes {
-      pool.create_node(0.0, NodeType::Input(i));
+    for _ in 0..input_nodes {
+      pool.create_input_node();
     }
 
-    for i in 0..output_nodes {
-      pool.create_node(OUTPUT_NODE_DEPTH, NodeType::Output(i));
+    for _ in 0..output_nodes {
+      pool.create_output_node();
     }
 
     for i in 0..input_nodes {
@@ -35,11 +43,43 @@ impl GenePool {
     pool
   }
 
-  pub fn create_node(&mut self, depth: f64, node_type: NodeType) -> usize {
+  pub fn rebuild_connection_mappings(&mut self) {
+    self.connection_mappings.clear();
+    for i in 0..self.connections.len() {
+      let connection = &self.connections[i];
+      self.connection_mappings.insert(*connection, i);
+    }
+  }
+
+  pub fn create_input_node(&mut self) -> usize {
     let id = self.nodes.len();
     let node = Node {
       id,
-      node_type,
+      node_type: NodeType::Input(self.input_count),
+      depth: INPUT_NODE_DEPTH
+    };
+    self.nodes.push(node);
+    self.input_count += 1;
+    id
+  }
+
+  pub fn create_output_node(&mut self) -> usize {
+    let id = self.nodes.len();
+    let node = Node {
+      id,
+      node_type: NodeType::Output(self.output_count),
+      depth: OUTPUT_NODE_DEPTH
+    };
+    self.nodes.push(node);
+    self.output_count += 1;
+    id
+  }
+
+  pub fn create_hidden_node(&mut self, depth: f64) -> usize {
+    let id = self.nodes.len();
+    let node = Node {
+      id,
+      node_type: NodeType::Hidden,
       depth
     };
     self.nodes.push(node);
@@ -47,12 +87,13 @@ impl GenePool {
   }
 
   pub fn create_connection(&mut self, start: usize, end: usize) -> usize {
-    if let Some(innovation) = self.connections.get(&(start, end)) {
+    let connection = Connection {start, end};
+    if let Some(innovation) = self.connection_mappings.get(&connection) {
       *innovation
     } else {
-      let innovation = self.next_innovation;
-      self.connections.insert((start, end), innovation);
-      self.next_innovation += 1;
+      let innovation = self.connections.len();
+      self.connections.push(connection);
+      self.connection_mappings.insert(connection, innovation);
       innovation
     }
   }
@@ -64,14 +105,16 @@ impl GenePool {
       genome.add_node(node.id);
     }
 
-    for connection in &self.connections {
-      genome.add_connection(connection.0.0, connection.0.1, *connection.1);
+    for i in 0..self.connections.len() {
+      let connection = &self.connections[i];
+      genome.add_connection(connection.start, connection.end, i);
     }
 
     genome
   }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub enum NodeType {
   Input(usize),
   Hidden,
@@ -79,8 +122,16 @@ pub enum NodeType {
 }
 
 // id ist immer gleich dem Index der Node im GenePool!
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Node {
   pub id: usize,
   pub node_type: NodeType,
   pub depth: f64
+}
+
+// innovation number entspricht dem Index im GenePool
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub struct Connection {
+  pub start: usize,
+  pub end: usize
 }

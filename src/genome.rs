@@ -1,7 +1,8 @@
 use hashbrown::HashMap;
-
+use serde::{Serialize, Deserialize};
 use crate::gene_pool::{GenePool, NodeType};
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Genome {
   connections: Vec<ConnectionGene>,
   nodes: Vec<NodeGene>,
@@ -73,6 +74,7 @@ impl Genome {
   }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 struct ConnectionGene {
   innovation: usize,
   from: usize, // Bezieht sich auf den Index im Genome
@@ -80,12 +82,14 @@ struct ConnectionGene {
   enabled: bool
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 struct NodeGene {
   node_id: usize,
   incoming_connections: Vec<usize>,   // Bezieht sich auf den Index im Genome
   evaluation: EvaluationValue
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 struct EvaluationValue {
   iteration: u32,
   value: f64
