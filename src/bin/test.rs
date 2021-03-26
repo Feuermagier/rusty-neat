@@ -1,4 +1,4 @@
-use rusty_neat::gene_pool::{GenePool};
+use rusty_neat::{gene_pool::{GenePool}, serialize::{self, read_genome}};
 
 fn main() {
   let mut pool = GenePool::new(0, 0);
@@ -9,15 +9,10 @@ fn main() {
   pool.create_connection(input1, hidden1);
   pool.create_connection(hidden1, output1);
   pool.create_connection(hidden1, output2);
-  let mut genome = pool.new_genome();
-  for i in 0..3 {
-    println!("{:?}", genome.evaluate(&vec![2.0], i + 1, &pool));
-  }
 
-  let serialized = serde_json::to_string(&pool).unwrap();
-  println!("serialized = {}", serialized);
+  serialize::store_genome("test.json", &pool.new_genome(), true).expect("Writing failed");
 
-  let mut deserialized: GenePool = serde_json::from_str(&serialized).unwrap();
-  deserialized.rebuild_connection_mappings();
-  println!("deserialized = {:?}", deserialized);
+
+  let mut genome = serialize::read_genome("test.json").expect("Reading failed");
+  println!("{:?}", genome.evaluate(&vec![2.0], 1, &pool));
 }
