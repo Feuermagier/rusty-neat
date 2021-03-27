@@ -1,7 +1,7 @@
-use rusty_neat::{gene_pool::{GenePool}, serialize::{self, read_genome}};
+use rusty_neat::{activation::Activation, gene_pool::{GenePool}, serialize};
 
 fn main() {
-  let mut pool = GenePool::new(0, 0);
+  let mut pool = GenePool::new(Activation::IDENTITY, 0.0);
   let input1 = pool.create_input_node();
   let hidden1 = pool.create_hidden_node(50.0);
   let output1 = pool.create_output_node();

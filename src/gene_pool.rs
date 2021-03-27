@@ -1,7 +1,7 @@
 use hashbrown::HashMap;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::genome::Genome;
+use crate::{activation::Activation, genome::Genome};
 
 const INPUT_NODE_DEPTH: f64 = 0.0;
 const OUTPUT_NODE_DEPTH: f64 = 100.0;
@@ -13,18 +13,28 @@ pub struct GenePool {
   #[serde(skip)]
   pub connection_mappings: HashMap<Connection, usize>, // connection -> innovation
   pub input_count: usize,
-  pub output_count: usize
+  pub output_count: usize,
+  activation: Activation,
+  bias: f64
 }
 
 impl GenePool {
-  pub fn new(input_nodes: usize, output_nodes: usize) -> GenePool {
-    let mut pool = GenePool {
-      nodes: Vec::with_capacity(input_nodes + output_nodes),
+  pub fn new(activation: Activation, bias: f64) -> GenePool {
+    GenePool {
+      nodes: Vec::new(),
       connection_mappings: HashMap::new(),
       connections: Vec::new(),
       input_count: 0,
-      output_count: 0
-    };
+      output_count: 0,
+      activation,
+      bias
+    }
+  }
+
+  pub fn new_dense(input_nodes: usize, output_nodes: usize, activation: Activation, bias: f64) -> GenePool {
+    let mut pool = GenePool::new(activation, bias);
+    pool.nodes.reserve(input_nodes + output_nodes);
+    pool.connections.reserve(input_nodes * output_nodes);
 
     for _ in 0..input_nodes {
       pool.create_input_node();
@@ -43,7 +53,7 @@ impl GenePool {
     pool
   }
 
-  pub fn rebuild_connection_mappings(&mut self) {
+  pub fn regenerate_fields(&mut self) {
     self.connection_mappings.clear();
     for i in 0..self.connections.len() {
       let connection = &self.connections[i];
@@ -99,7 +109,7 @@ impl GenePool {
   }
 
   pub fn new_genome(&self) -> Genome {
-    let mut genome = Genome::new();
+    let mut genome = Genome::new(self.activation, self.bias);
 
     for node in &self.nodes {
       genome.add_node(node.id);

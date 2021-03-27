@@ -1,23 +1,25 @@
 use hashbrown::HashMap;
 use serde::{Serialize, Deserialize};
-use crate::gene_pool::{GenePool, NodeType};
+use crate::{activation::Activation, gene_pool::{GenePool, NodeType}};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Genome {
   connections: Vec<ConnectionGene>,
   nodes: Vec<NodeGene>,
-  node_mappings: HashMap<usize, usize> // node_id -> gene_id
+  node_mappings: HashMap<usize, usize>, // node_id -> gene_id
+  bias: f64,
+  activation: Activation
 }
 
 impl Genome {
-  pub fn new() -> Genome {
-    let genome =  Genome { 
+  pub fn new(activation: Activation, bias: f64) -> Genome {
+    Genome { 
       connections: Vec::new(), 
       nodes: Vec::new(),
-      node_mappings: HashMap::new()
-    };
-
-    genome
+      node_mappings: HashMap::new(),
+      bias,
+      activation
+    }
   }
 
   pub fn add_node(&mut self, id: usize) {
@@ -29,6 +31,7 @@ impl Genome {
     self.node_mappings.insert(id, self.nodes.len() - 1);
   }
 
+  // from und to beziehen sich auf den GenePool
   pub fn add_connection(&mut self, from: usize, to: usize, innovation: usize) {
     self.connections.push(ConnectionGene {
       innovation,
@@ -39,7 +42,7 @@ impl Genome {
     self.nodes[*self.node_mappings.get(&to).unwrap()].incoming_connections.push(self.connections.len() - 1);
   }
 
-  pub fn evaluate(&mut self, input: &Vec<f64>, iteration: u32, pool: &GenePool) -> Vec<f64> {
+  pub fn evaluate(&mut self, input: &Vec<f64>, iteration: u64, pool: &GenePool) -> Vec<f64> {
     for node in &mut self.nodes {
       if let NodeType::Input(i) = pool.nodes[node.node_id].node_type {
         node.evaluation = EvaluationValue {iteration, value: input[i]};
@@ -54,7 +57,8 @@ impl Genome {
     result
   }
 
-  fn evaluate_node(&mut self, node_id: usize, input: &Vec<f64>, iteration: u32) -> f64 {
+  // node_id bezieht sich auf den Index im Genome
+  fn evaluate_node(&mut self, node_id: usize, input: &Vec<f64>, iteration: u64) -> f64 {
     if self.nodes[node_id].evaluation.iteration == iteration {
       self.nodes[node_id].evaluation.value
     } else {
@@ -67,6 +71,8 @@ impl Genome {
           value += weight * self.evaluate_node(from, input, iteration);
         }
       }
+      value += self.bias;
+      value = (self.activation.function())(value);
       self.nodes[node_id].evaluation.iteration = iteration;
       self.nodes[node_id].evaluation.value = value;
       value
@@ -86,11 +92,12 @@ struct ConnectionGene {
 struct NodeGene {
   node_id: usize,
   incoming_connections: Vec<usize>,   // Bezieht sich auf den Index im Genome
+  #[serde(skip)]
   evaluation: EvaluationValue
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 struct EvaluationValue {
-  iteration: u32,
+  iteration: u64,
   value: f64
 }
