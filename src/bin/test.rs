@@ -10,6 +10,7 @@ fn main() {
       initial_organism_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
       distance: Rc::from(DistanceConfig {
           c1: 1.0,
+          c2: 1.0,
           c3: 0.3,
       }),
       species: Rc::from(SpeciesConfig {
@@ -25,7 +26,7 @@ fn main() {
         organism_count: 200,
         min_species_size: 10,
         kill_ratio: 0.5,
-        mutation_ratio: 0.1,
+        mutation_ratio: 0.5,
         allow_elitism: true,
         elitism_limit: 20,
         elitism_count: 2,

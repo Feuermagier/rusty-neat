@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cmp::{min, max}, ops::Range, rc::Rc};
+use std::{cmp::{min, max}, collections::BTreeMap, ops::Range, rc::Rc};
 
 use hashbrown::HashMap;
 use rand::{Rng, prelude::SliceRandom};
@@ -10,7 +10,7 @@ use crate::{activation::Activation, gene_pool::{Connection, GenePool, NodeType}}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Genome {
   connections: Vec<ConnectionGene>,
-  connection_mappings: HashMap<usize, usize>, // innovation -> Index in connections
+  connection_mappings: BTreeMap<usize, usize>, // innovation -> Index in connections
   nodes: Vec<NodeGene>,
   node_mappings: HashMap<usize, usize>, // node_id -> gene_id
   next_iteration: u64,
@@ -20,8 +20,8 @@ pub struct Genome {
 impl Genome {
   pub fn new() -> Genome {
     Genome { 
-      connections: Vec::new(), 
-      connection_mappings: HashMap::new(),
+      connections: Vec::new(),
+      connection_mappings: BTreeMap::new(),
       nodes: Vec::new(),
       node_mappings: HashMap::new(),
       next_iteration: 1,
@@ -116,26 +116,34 @@ impl Genome {
     let mut similar = 0;
     let mut weight_difference = 0.0;
 
-    for i in generate_innovation_range(self, other) {
-      let my_gene = self.connection_mappings.get(&i);
-      let other_gene = other.connection_mappings.get(&i);
+    let mut my_connections = self.connection_mappings.keys().peekable();
+    let mut other_connections = other.connection_mappings.keys().peekable();
 
-      if my_gene.and(other_gene).is_some() {
-        let my_gene = &self.connections[*my_gene.unwrap()];
-        let other_gene = &other.connections[*other_gene.unwrap()];
+    while my_connections.peek().is_some() && other_connections.peek().is_some() {
+      if my_connections.peek().eq(&other_connections.peek()) {
+        let my_gene = &self.connections[*self.connection_mappings.get(my_connections.next().unwrap()).unwrap()];
+        let other_gene = &other.connections[*other.connection_mappings.get(other_connections.next().unwrap()).unwrap()];
         weight_difference += (my_gene.weight - other_gene.weight).abs();
         similar += 1;
-      } else if my_gene.or(other_gene).is_some() {
+      } else {
+        if my_connections.peek().lt(&other_connections.peek()) {
+          my_connections.next();
+        } else {
+          other_connections.next();
+        }
         disjoint += 1;
       }
     }
 
+    let excess = max(my_connections.count(), other_connections.count());
+
     // Casts zu floats
     let disjoint = disjoint as f64;
     let similar = similar as f64;
+    let excess = excess as f64;
     let n = max(self.connections.len(), other.connections.len()) as f64;
 
-    (disjoint * config.c1) / n + weight_difference / similar * config.c3
+    (disjoint * config.c1 + excess * config.c2) / n + weight_difference / similar * config.c3
   }
 
   pub fn mutate(&mut self, pool: &mut GenePool, config: &MutationConfig) {
@@ -304,6 +312,7 @@ struct EvaluationValue {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DistanceConfig {
   pub c1: f64,
+  pub c2: f64,
   pub c3: f64
 }
 

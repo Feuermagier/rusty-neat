@@ -1,5 +1,8 @@
 - Kreuzung beücksichigt wie gut die Genome sind
-  - Gewicht werden vom besseren Organismus bevorzugt übernommen
+  - Gewichte werden vom besseren Organismus bevorzugt übernommen
   - Excess-Connections & Nodes werden nur vom besseren Organismus übernommen
 
+- Alignment der Genome beschleunigen
 - Interspecies Mating
+- Stagnation
+- Traits
