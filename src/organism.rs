@@ -25,7 +25,7 @@ impl Organism {
   }
 
   pub(crate) fn distance(&self, other: &Organism, config: Rc<DistanceConfig>) -> f64 {
-    self.genome.distance(&other.genome, &self.pool.borrow(), config.as_ref())
+    self.genome.distance(&other.genome, config.as_ref())
   }
 }
 

@@ -1,0 +1,5 @@
+- Kreuzung beücksichigt wie gut die Genome sind
+  - Gewicht werden vom besseren Organismus bevorzugt übernommen
+  - Excess-Connections & Nodes werden nur vom besseren Organismus übernommen
+
+- Interspecies Mating

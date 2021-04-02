@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cmp, rc::Rc};
+use std::{cmp::{min, max}, ops::Range, rc::Rc};
 
 use hashbrown::HashMap;
 use rand::{Rng, prelude::SliceRandom};
@@ -13,7 +13,8 @@ pub struct Genome {
   connection_mappings: HashMap<usize, usize>, // innovation -> Index in connections
   nodes: Vec<NodeGene>,
   node_mappings: HashMap<usize, usize>, // node_id -> gene_id
-  next_iteration: u64
+  next_iteration: u64,
+  innovation_range: Option<(usize, usize)>
 }
 
 impl Genome {
@@ -23,7 +24,8 @@ impl Genome {
       connection_mappings: HashMap::new(),
       nodes: Vec::new(),
       node_mappings: HashMap::new(),
-      next_iteration: 1
+      next_iteration: 1,
+      innovation_range: None
     }
   }
 
@@ -62,6 +64,13 @@ impl Genome {
     let index = self.connections.len() - 1;
     self.connection_mappings.insert(connection.innovation, index);
     self.nodes[*self.node_mappings.get(&connection.to).unwrap()].incoming_connections.push(index);
+
+    // Range der innovations anpassen
+    if self.innovation_range.is_none() {
+      self.innovation_range = Some((connection.innovation, connection.innovation));
+    } else {
+      self.innovation_range = Some((min(self.innovation_range.unwrap().0, connection.innovation), max(self.innovation_range.unwrap().1, connection.innovation)));
+    }
   }
 
   pub fn evaluate(&mut self, input: &Vec<f64>, pool: &GenePool, config: &EvaluationConfig) -> Vec<f64> {
@@ -102,12 +111,12 @@ impl Genome {
     }
   }
 
-  pub fn distance(&self, other: &Genome, pool: &GenePool, config: &DistanceConfig) -> f64 {
+  pub fn distance(&self, other: &Genome, config: &DistanceConfig) -> f64 {
     let mut disjoint = 0;
     let mut similar = 0;
     let mut weight_difference = 0.0;
 
-    for i in 0..pool.connections.len() {
+    for i in generate_innovation_range(self, other) {
       let my_gene = self.connection_mappings.get(&i);
       let other_gene = other.connection_mappings.get(&i);
 
@@ -124,7 +133,7 @@ impl Genome {
     // Casts zu floats
     let disjoint = disjoint as f64;
     let similar = similar as f64;
-    let n = cmp::max(self.connections.len(), other.connections.len()) as f64;
+    let n = max(self.connections.len(), other.connections.len()) as f64;
 
     (disjoint * config.c1) / n + weight_difference / similar * config.c3
   }
@@ -222,7 +231,7 @@ impl Genome {
 
   pub fn crossover(&self, other: &Genome, pool: &GenePool, config: &CrossoverConfig) -> Genome {
     let mut offspring = Genome::new();
-    for i in 0..pool.connections.len() {
+    for i in generate_innovation_range(self, other) {
       let my_gene = self.connection_mappings.get(&i);
       let other_gene = other.connection_mappings.get(&i);
 
@@ -271,9 +280,9 @@ struct ConnectionGene {
 impl fmt::Debug for ConnectionGene {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.enabled {
-      write!(f, "{}:{}-{:.2}->{}", self.innovation, self.from, self.weight, self.to)
-    } else {
       write!(f, "{}:{}-({:.2})->{}", self.innovation, self.from, self.weight, self.to)
+    } else {
+      write!(f, "{}:{}-!({:.2})->{}", self.innovation, self.from, self.weight, self.to)
     }
   }
 }
@@ -351,3 +360,22 @@ pub enum NETWORK_TYPE {
                         // ausgewertet, bis jede Kante berechnet werden konnte
 }
 */
+
+fn generate_innovation_range(first_genome: &Genome, second_genome: &Genome) -> Range<usize> {
+  if first_genome.innovation_range.or(second_genome.innovation_range).is_none() {
+    Range::<usize> {
+      start: 0,
+      end: 0,
+    }
+  } else if let Some((min, max)) = first_genome.innovation_range.xor(second_genome.innovation_range) {
+    Range::<usize> {
+      start: min,
+      end: max + 1,
+    }
+  } else {
+    Range::<usize> {
+      start: min(first_genome.innovation_range.unwrap().0, second_genome.innovation_range.unwrap().0),
+      end: max(first_genome.innovation_range.unwrap().1, second_genome.innovation_range.unwrap().1) + 1,
+    }
+  }
+}

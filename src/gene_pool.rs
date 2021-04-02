@@ -136,7 +136,7 @@ impl GenePool {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum NodeType {
   Input(usize),
   Hidden,
