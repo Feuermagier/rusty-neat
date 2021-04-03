@@ -121,11 +121,13 @@ impl Genome {
 
     while my_connections.peek().is_some() && other_connections.peek().is_some() {
       if my_connections.peek().eq(&other_connections.peek()) {
+        // Similar
         let my_gene = &self.connections[*self.connection_mappings.get(my_connections.next().unwrap()).unwrap()];
         let other_gene = &other.connections[*other.connection_mappings.get(other_connections.next().unwrap()).unwrap()];
         weight_difference += (my_gene.weight - other_gene.weight).abs();
         similar += 1;
       } else {
+        // Disjoint
         if my_connections.peek().lt(&other_connections.peek()) {
           my_connections.next();
         } else {
@@ -135,6 +137,7 @@ impl Genome {
       }
     }
 
+    // Excess
     let excess = max(my_connections.count(), other_connections.count());
 
     // Casts zu floats
@@ -237,41 +240,47 @@ impl Genome {
     }
   }
 
+  fn get_connection_from_innovation(&self, innovation: usize) -> &ConnectionGene {
+    &self.connections[*self.connection_mappings.get(&innovation).unwrap()]
+  }
+
   pub fn crossover(&self, other: &Genome, pool: &GenePool, config: &CrossoverConfig) -> Genome {
     let mut offspring = Genome::new();
-    for i in generate_innovation_range(self, other) {
-      let my_gene = self.connection_mappings.get(&i);
-      let other_gene = other.connection_mappings.get(&i);
 
-      if my_gene.is_some() && other_gene.is_some() {
-        let my_gene = &self.connections[*my_gene.unwrap()];
-        let other_gene = &other.connections[*other_gene.unwrap()];
+    let mut my_connections = self.connection_mappings.keys().peekable();
+    let mut other_connections = other.connection_mappings.keys().peekable();
 
-        let weight = match config.weight_strategy {
-          CrossoverWeightStrategy::Random => {
-            if rand::thread_rng().gen_bool(0.5) {
-              my_gene.weight
-            } else {
-              other_gene.weight
-            }
-          }
-          CrossoverWeightStrategy::Mean => (my_gene.weight + other_gene.weight) / 2.0
-        };
-
-        if my_gene.enabled == other_gene.enabled {
-          offspring.add_connection(Rc::clone(&pool.connections[my_gene.innovation]), weight, my_gene.enabled);
+    while my_connections.peek().is_some() && other_connections.peek().is_some() {
+      if my_connections.peek().eq(&other_connections.peek()) {
+        // Similar
+        let my_gene = self.get_connection_from_innovation(*my_connections.next().unwrap());
+        let other_gene = other.get_connection_from_innovation(*other_connections.next().unwrap());
+        crossover_similar(my_gene, other_gene, &mut offspring, pool, config);
+      } else {
+        // Disjoint
+        if my_connections.peek().lt(&other_connections.peek()) {
+          let my_gene = self.get_connection_from_innovation(*my_connections.next().unwrap());
+          offspring.add_connection(Rc::clone(&pool.connections[my_gene.innovation]), my_gene.weight, my_gene.enabled);
         } else {
-          offspring.add_connection(Rc::clone(&pool.connections[my_gene.innovation]), weight, rand::thread_rng().gen_bool(1.0 - config.disable_connection_prob));
+          let other_gene = other.get_connection_from_innovation(*other_connections.next().unwrap());
+          offspring.add_connection(Rc::clone(&pool.connections[other_gene.innovation]), other_gene.weight, other_gene.enabled);
         }
+      }
+    }
 
-      } else if my_gene.is_some() && other_gene.is_none() {
-        let my_gene = &self.connections[*my_gene.unwrap()];
+    // Excess
+    if my_connections.peek().is_some() {
+      for innovation in my_connections {
+        let my_gene = self.get_connection_from_innovation(*innovation);
         offspring.add_connection(Rc::clone(&pool.connections[my_gene.innovation]), my_gene.weight, my_gene.enabled);
-      } else if my_gene.is_none() && other_gene.is_some() {
-        let other_gene = &other.connections[*other_gene.unwrap()];
+      }
+    } else if other_connections.peek().is_some() {
+      for innovation in other_connections {
+        let other_gene = other.get_connection_from_innovation(*innovation);
         offspring.add_connection(Rc::clone(&pool.connections[other_gene.innovation]), other_gene.weight, other_gene.enabled);
       }
     }
+
     offspring
   }
 }
@@ -356,6 +365,7 @@ pub struct CrossoverConfig {
 
 pub enum CrossoverWeightStrategy {
   Random,   // Gewicht von einem zufälligen Eltern
+  Better,   // Gewicht des besseren Elternteils
   Mean      // Mittelwert der Elterngewichte
 }
 
@@ -386,5 +396,26 @@ fn generate_innovation_range(first_genome: &Genome, second_genome: &Genome) -> R
       start: min(first_genome.innovation_range.unwrap().0, second_genome.innovation_range.unwrap().0),
       end: max(first_genome.innovation_range.unwrap().1, second_genome.innovation_range.unwrap().1) + 1,
     }
+  }
+}
+
+///////////////////////////////////////// Crossovers ////////////////////////////////////////////////////////7
+fn crossover_similar(better_gene: &ConnectionGene, worse_gene: &ConnectionGene, offspring: &mut Genome, pool: &GenePool, config: &CrossoverConfig) {
+  let weight = match config.weight_strategy {
+    CrossoverWeightStrategy::Random => {
+      if rand::thread_rng().gen_bool(0.5) {
+        better_gene.weight
+      } else {
+        worse_gene.weight
+      }
+    },
+    CrossoverWeightStrategy::Better => better_gene.weight,
+    CrossoverWeightStrategy::Mean => (better_gene.weight + worse_gene.weight) / 2.0
+  };
+
+  if better_gene.enabled == worse_gene.enabled {
+    offspring.add_connection(Rc::clone(&pool.connections[better_gene.innovation]), weight, better_gene.enabled);
+  } else {
+    offspring.add_connection(Rc::clone(&pool.connections[better_gene.innovation]), weight, rand::thread_rng().gen_bool(1.0 - config.disable_connection_prob));
   }
 }
