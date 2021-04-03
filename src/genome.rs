@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{cmp::{min, max}, collections::BTreeMap, ops::Range, rc::Rc};
+use std::{cmp::{min, max}, collections::BTreeMap, rc::Rc};
 
 use hashbrown::HashMap;
 use rand::{Rng, prelude::SliceRandom};
@@ -13,8 +13,7 @@ pub struct Genome {
   connection_mappings: BTreeMap<usize, usize>, // innovation -> Index in connections
   nodes: Vec<NodeGene>,
   node_mappings: HashMap<usize, usize>, // node_id -> gene_id
-  next_iteration: u64,
-  innovation_range: Option<(usize, usize)>
+  next_iteration: u64
 }
 
 impl Genome {
@@ -24,8 +23,7 @@ impl Genome {
       connection_mappings: BTreeMap::new(),
       nodes: Vec::new(),
       node_mappings: HashMap::new(),
-      next_iteration: 1,
-      innovation_range: None
+      next_iteration: 1
     }
   }
 
@@ -64,13 +62,6 @@ impl Genome {
     let index = self.connections.len() - 1;
     self.connection_mappings.insert(connection.innovation, index);
     self.nodes[*self.node_mappings.get(&connection.to).unwrap()].incoming_connections.push(index);
-
-    // Range der innovations anpassen
-    if self.innovation_range.is_none() {
-      self.innovation_range = Some((connection.innovation, connection.innovation));
-    } else {
-      self.innovation_range = Some((min(self.innovation_range.unwrap().0, connection.innovation), max(self.innovation_range.unwrap().1, connection.innovation)));
-    }
   }
 
   pub fn evaluate(&mut self, input: &Vec<f64>, pool: &GenePool, config: &EvaluationConfig) -> Vec<f64> {
@@ -379,25 +370,6 @@ pub enum NETWORK_TYPE {
                         // ausgewertet, bis jede Kante berechnet werden konnte
 }
 */
-
-fn generate_innovation_range(first_genome: &Genome, second_genome: &Genome) -> Range<usize> {
-  if first_genome.innovation_range.or(second_genome.innovation_range).is_none() {
-    Range::<usize> {
-      start: 0,
-      end: 0,
-    }
-  } else if let Some((min, max)) = first_genome.innovation_range.xor(second_genome.innovation_range) {
-    Range::<usize> {
-      start: min,
-      end: max + 1,
-    }
-  } else {
-    Range::<usize> {
-      start: min(first_genome.innovation_range.unwrap().0, second_genome.innovation_range.unwrap().0),
-      end: max(first_genome.innovation_range.unwrap().1, second_genome.innovation_range.unwrap().1) + 1,
-    }
-  }
-}
 
 ///////////////////////////////////////// Crossovers ////////////////////////////////////////////////////////7
 fn crossover_similar(better_gene: &ConnectionGene, worse_gene: &ConnectionGene, offspring: &mut Genome, pool: &GenePool, config: &CrossoverConfig) {
