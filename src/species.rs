@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use rand::prelude::{SliceRandom};
 
-use crate::{gene_pool::GenePool, genome::DistanceConfig, organism::Organism};
+use crate::{config_util, gene_pool::GenePool, genome::DistanceConfig, organism::Organism};
 
 #[derive(Clone)]
 pub(crate) struct Species {
@@ -56,6 +56,12 @@ pub struct SpeciesConfig {
   pub representative: ReprentativeSelection,  // Wie der Representative einer Spezies ausgewählt werden soll
   pub fitness: FitnessStrategy,               // Wie die Fitness einer Spezies berechnet werden soll
   pub species_distance_tolerance: f64,        // Maximaler Abstande der Genome inenrhalb eines Species zum Representative
+}
+
+impl SpeciesConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    config_util::assert_not_negative(self.species_distance_tolerance, "species_distance_tolerance")
+  }
 }
 
 // Strategie um den Representative einer Spezies auszuwählen

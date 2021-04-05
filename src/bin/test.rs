@@ -5,65 +5,65 @@ use rusty_neat::{activation::Activation, gene_pool::GenePool, genome::{Crossover
 
 fn main() {
   let config = PopulationConfig {
-      target_fitness: 4.0,
-      max_generations: 60,
-      initial_organism_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
-      distance: Rc::from(DistanceConfig {
-          c1: 1.0,
-          c2: 1.0,
-          c3: 0.3,
-      }),
-      species: Rc::from(SpeciesConfig {
-        representative: ReprentativeSelection::RANDOM,
-        fitness: FitnessStrategy::MEAN,
-        species_distance_tolerance: 3.0
-      }),
-      evaluation: Rc::from(EvaluationConfig {
-        bias: 0.0,
-        activation: Activation::SIGMOID,
-      }),
-      reproduction: Rc::from(ReproductionConfig {
-        organism_count: 200,
-        min_species_size: 10,
-        kill_ratio: 0.5,
-        mutation_ratio: 0.5,
-        allow_elitism: true,
-        elitism_limit: 20,
-        elitism_count: 2,
-        global_strategy: GlobalReproductionStrategy::Fair,
-        species_strategy: SpeciesReproductionStrategy::Random,
-        large_species_size: 30,
-        crossover: CrossoverConfig {
-          disable_connection_prob: 0.75,
-          weight_strategy: CrossoverWeightStrategy::Random,
-        },
-        small_intensity_config: MutationConfig {
-          change_weight_prob: 0.8,
-          random_weight_dist: Normal::new(0.0, 3.0).unwrap(),
-          shift_weight_prob: 0.9,
-          shift_weight_dist: Normal::new(0.0, 0.5).unwrap(),
-          add_node_prob: 0.03,
-          add_connection_prob: 0.05,
-          add_connection_retry_count: 100,
-          new_connection_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
-          toggle_connection_prob: 0.08,
-        },
-        large_intensity_config: MutationConfig {
-          change_weight_prob: 0.8,
-          random_weight_dist: Normal::new(0.0, 3.0).unwrap(),
-          shift_weight_prob: 0.9,
-          shift_weight_dist: Normal::new(0.0, 0.8).unwrap(),
-          add_node_prob: 0.03,
-          add_connection_prob: 0.3,
-          add_connection_retry_count: 100,
-          new_connection_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
-          toggle_connection_prob: 0.00,
-        }
-      }),
+    target_fitness: 3.8,
+    max_generations: 200,
+    initial_organism_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
+    distance: Rc::from(DistanceConfig {
+        c1: 1.0,
+        c2: 1.0,
+        c3: 0.3,
+    }),
+    species: Rc::from(SpeciesConfig {
+      representative: ReprentativeSelection::RANDOM,
+      fitness: FitnessStrategy::MEAN,
+      species_distance_tolerance: 3.0
+    }),
+    evaluation: Rc::from(EvaluationConfig {
+      bias: 0.0,
+      activation: Activation::SIGMOID,
+    }),
+    reproduction: Rc::from(ReproductionConfig {
+      organism_count: 1000,
+      min_species_size: 10,
+      kill_ratio: 0.5,
+      mutation_ratio: 0.5,
+      allow_elitism: true,
+      elitism_limit: 20,
+      elitism_count: 2,
+      global_strategy: GlobalReproductionStrategy::Fair,
+      species_strategy: SpeciesReproductionStrategy::Random,
+      large_species_size: 30,
+      crossover: CrossoverConfig {
+        disable_connection_prob: 0.75,
+        weight_strategy: CrossoverWeightStrategy::Random,
+      },
+      small_intensity_config: MutationConfig {
+        change_weight_prob: 0.8,
+        random_weight_dist: Normal::new(0.0, 3.0).unwrap(),
+        shift_weight_prob: 0.9,
+        shift_weight_dist: Normal::new(0.0, 0.5).unwrap(),
+        add_node_prob: 0.03,
+        add_connection_prob: 0.05,
+        add_connection_retry_count: 100,
+        new_connection_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
+        toggle_connection_prob: 0.08,
+      },
+      large_intensity_config: MutationConfig {
+        change_weight_prob: 0.8,
+        random_weight_dist: Normal::new(0.0, 3.0).unwrap(),
+        shift_weight_prob: 0.9,
+        shift_weight_dist: Normal::new(0.0, 0.8).unwrap(),
+        add_node_prob: 0.03,
+        add_connection_prob: 0.3,
+        add_connection_retry_count: 100,
+        new_connection_weight: NewConnectionWeight::Random(Normal::new(0.0, 3.0).unwrap()),
+        toggle_connection_prob: 0.00,
+      }
+    }),
   };
 
   let pool = GenePool::new_dense(3, 1);
-  let mut population = Population::new(pool, config);
+  let mut population = Population::new(pool, config).unwrap();
   let none = vec![0.0, 0.0, 1.0];
   let first = vec![1.0, 0.0, 1.0];
   let second = vec![0.0, 1.0, 1.0];

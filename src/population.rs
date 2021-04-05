@@ -1,7 +1,7 @@
 use core::f64;
 use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
-use crate::{gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, NewConnectionWeight}, organism::Organism, reproduction::{self, ReproductionConfig}, species::{Species, SpeciesConfig}};
+use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, NewConnectionWeight}, organism::Organism, reproduction::{self, ReproductionConfig}, species::{Species, SpeciesConfig}};
 
 pub struct Population {
   config: Rc<PopulationConfig>,
@@ -11,14 +11,17 @@ pub struct Population {
 }
 
 impl Population {
-  pub fn new(pool: GenePool, config: PopulationConfig) -> Population {
-    let mut population = Population {
+  pub fn new(pool: GenePool, config: PopulationConfig) -> Result<Population, String> {
+    if let Err(msg) = config.validate() {
+      return Err(msg);
+    }
+    let population = Population {
       pool: Rc::from(RefCell::from(pool)),
       organisms: Vec::with_capacity(1),
       config: Rc::from(config),
       species: Vec::with_capacity(1)
     };
-    population
+    Ok(population)
   }
 
   pub fn evolve<F: Fn(&mut [Organism]) -> ()> (&mut self, fitness_function: F) -> Organism {
@@ -112,4 +115,13 @@ pub struct PopulationConfig {
   pub species: Rc<SpeciesConfig>,
   pub evaluation: Rc<EvaluationConfig>,
   pub reproduction: Rc<ReproductionConfig>
+}
+
+impl PopulationConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    assert_not_negative(self.target_fitness, "target_fitness")
+    .and(self.distance.validate())
+    .and(self.species.validate())
+    .and(self.reproduction.validate())
+  }
 }

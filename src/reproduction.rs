@@ -2,7 +2,7 @@ use std::{cell::RefCell, cmp::{max, min}, rc::Rc};
 
 use rand::prelude::{IteratorRandom, SliceRandom};
 
-use crate::{gene_pool::GenePool, genome::{CrossoverConfig, EvaluationConfig, MutationConfig}, organism::Organism, population::{Population}, species::Species};
+use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{CrossoverConfig, EvaluationConfig, MutationConfig}, organism::Organism, population::{Population}, species::Species};
 
 pub(crate) fn reproduce(population: &mut Population, pool: Rc<RefCell<GenePool>>, config: Rc<ReproductionConfig>, evaluation_config: Rc<EvaluationConfig>) -> Vec<Organism> {
   match config.global_strategy {
@@ -98,6 +98,19 @@ pub struct ReproductionConfig {
   pub crossover: CrossoverConfig,       // Wie die Kreuzung funktionieren soll
   pub small_intensity_config: MutationConfig,     // Wie eine Mutation mit geringer Intensität erfolgen soll
   pub large_intensity_config: MutationConfig      // Wie eine Mutation mit hoher Intensität erfolgen soll
+}
+
+impl ReproductionConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    if self.organism_count == 0 {
+      return Err(String::from("organism_count must not be 0"));
+    }
+    assert_not_negative(self.kill_ratio, "kill_ratio")
+    .and(assert_not_negative(self.mutation_ratio, "mutation_ratio"))
+    .and(self.small_intensity_config.validate())
+    .and(self.crossover.validate())
+    .and(self.large_intensity_config.validate())
+  }
 }
 
 pub enum GlobalReproductionStrategy {

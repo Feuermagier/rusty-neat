@@ -35,11 +35,11 @@ impl GenePool {
     pool.connections.reserve(input_nodes * output_nodes);
 
     for _ in 0..input_nodes {
-      pool.create_input_node();
+      pool.create_input_node(1.0 / input_nodes as f64);
     }
 
     for _ in 0..output_nodes {
-      pool.create_output_node();
+      pool.create_output_node(1.0 / output_nodes as f64);
     }
 
     for i in 0..input_nodes {
@@ -59,47 +59,53 @@ impl GenePool {
     }
   }
 
-  pub fn create_input_node(&mut self) -> usize {
+  pub fn create_input_node(&mut self, vertical_placement: f64) -> usize {
     let id = self.nodes.len();
     let node = Node {
       id,
       node_type: NodeType::Input(self.input_count),
-      depth: INPUT_NODE_DEPTH
+      depth: INPUT_NODE_DEPTH,
+      vertical_placement
     };
     self.nodes.push(node);
     self.input_count += 1;
     id
   }
 
-  pub fn create_output_node(&mut self) -> usize {
+  pub fn create_output_node(&mut self, vertical_placement: f64) -> usize {
     let id = self.nodes.len();
     let node = Node {
       id,
       node_type: NodeType::Output(self.output_count),
-      depth: OUTPUT_NODE_DEPTH
+      depth: OUTPUT_NODE_DEPTH,
+      vertical_placement
     };
     self.nodes.push(node);
     self.output_count += 1;
     id
   }
 
-  pub fn create_hidden_node(&mut self, depth: f64) -> usize {
+  pub fn create_hidden_node(&mut self, depth: f64, vertical_placement: f64) -> usize {
     let id = self.nodes.len();
     let node = Node {
       id,
       node_type: NodeType::Hidden,
-      depth
+      depth,
+      vertical_placement
     };
     self.nodes.push(node);
     id
   }
 
   pub fn create_hidden_node_between(&mut self, left_node: usize, right_node: usize) -> usize {
+    let left_node = &self.nodes[left_node];
+    let right_node = &self.nodes[right_node];
     let id = self.nodes.len();
     let node = Node {
       id,
       node_type: NodeType::Hidden,
-      depth: (self.nodes[left_node].depth + self.nodes[right_node].depth ) / 2.0
+      depth: (left_node.depth + right_node.depth ) / 2.0,
+      vertical_placement: (left_node.depth + right_node.depth) / 2.0
     };
     self.nodes.push(node);
     id
@@ -148,7 +154,8 @@ pub enum NodeType {
 pub struct Node {
   pub id: usize,
   pub node_type: NodeType,
-  pub depth: f64
+  pub depth: f64,
+  pub vertical_placement: f64
 }
 
 // innovation number entspricht dem Index im GenePool

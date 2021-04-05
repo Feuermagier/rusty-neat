@@ -6,3 +6,4 @@ pub mod population;
 pub mod species;
 pub mod organism;
 pub mod reproduction;
+mod config_util;

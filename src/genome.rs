@@ -1,11 +1,11 @@
 use core::fmt;
-use std::{cmp::{min, max}, collections::BTreeMap, rc::Rc};
+use std::{cmp::max, collections::BTreeMap, rc::Rc};
 
 use hashbrown::HashMap;
 use rand::{Rng, prelude::SliceRandom};
 use rand_distr::{Distribution, Normal};
 use serde::{Serialize, Deserialize};
-use crate::{activation::Activation, gene_pool::{Connection, GenePool, NodeType}};
+use crate::{activation::Activation, config_util, gene_pool::{Connection, GenePool, NodeType}};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Genome {
@@ -274,6 +274,11 @@ impl Genome {
 
     offspring
   }
+
+  pub fn get_status_of_connection(&self, node_id: usize) -> (f64, bool) {
+    let gene = &self.connections[*self.connection_mappings.get(&node_id).unwrap()];
+    (gene.weight, gene.enabled)
+  }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -316,6 +321,14 @@ pub struct DistanceConfig {
   pub c3: f64
 }
 
+impl DistanceConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    config_util::assert_not_negative(self.c1, "c1")
+    .and(config_util::assert_not_negative(self.c2, "c2"))
+    .and(config_util::assert_not_negative(self.c3, "c3"))
+  }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EvaluationConfig {
   pub bias: f64,
@@ -326,12 +339,22 @@ pub struct MutationConfig {
   pub change_weight_prob: f64,                    // Wahrscheinlichkeit, dass das Gewicht jedes einzelnen ConnectionGenes verändert wird
   pub random_weight_dist: Normal<f64>,            // Standardabweichung s der N(0, s)-Verteilung für den zufälligen Wert der Connection bei einem weight change ohne shift
   pub shift_weight_prob: f64,                     // Wahrscheinlichkeit, dass weight change das Gewicht shiftet und nicht zufällig neu setzt
-  pub shift_weight_dist: Normal<f64>,             // Standardabweichung s der N(0, s)-Verteilung für den shift eines weigght shifts
+  pub shift_weight_dist: Normal<f64>,             // Standardabweichung s der N(0, s)-Verteilung für den shift eines weight shifts
   pub add_node_prob: f64,                         // Wahrscheinlichkeit, dass ein neuer Node hinzugefügt wird
   pub add_connection_prob: f64,                   // Wahrscheinlichkeit, dass eine neue Connection zwischen bestehenden Nodes hinzugefügt wird
   pub add_connection_retry_count: u32,            // Anzahl der Versuche, zwei passende Nodes für eine neue Connnection auszulosen
   pub new_connection_weight: NewConnectionWeight, // Wie das Gewicht einer neuen Connection festgelegt werden soll.
   pub toggle_connection_prob: f64                 // Wahrscheinlichkeit, dass eine zufällige Connection enabled bzw. disabled wird
+}
+
+impl MutationConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    config_util::assert_probability(self.change_weight_prob, "change_weight_prob")
+    .and(config_util::assert_probability(self.shift_weight_prob, "shift_weight_prob"))
+    .and(config_util::assert_probability(self.add_node_prob, "add_node_prob"))
+    .and(config_util::assert_probability(self.add_connection_prob, "add_connection_prob"))
+    .and(config_util::assert_probability(self.toggle_connection_prob, "toggle_connection_prob"))
+  }
 }
 
 pub enum NewConnectionWeight {
@@ -352,6 +375,12 @@ impl NewConnectionWeight {
 pub struct CrossoverConfig {
   pub disable_connection_prob: f64, // Wahrscheinlichkeit, dass eine Connection disabled wird, wenn die Connection in einem Elternteil disabled ist
   pub weight_strategy: CrossoverWeightStrategy // Wie das Gewicht einer Connection die in beiden Eltern vorhanden ist bestimmt werden soll
+}
+
+impl CrossoverConfig {
+  pub fn validate(&self) -> Result<(), String> {
+    config_util::assert_probability(self.disable_connection_prob, "disable_connection_prob")
+  }
 }
 
 pub enum CrossoverWeightStrategy {
