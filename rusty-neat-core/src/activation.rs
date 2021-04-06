@@ -1,35 +1,35 @@
+use serde::{Deserialize, Serialize};
 use std::f64;
-use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Activation {
-  IDENTITY,
-  SIGMOID,
-  RELU
+    IDENTITY,
+    SIGMOID,
+    RELU,
 }
 
 impl Activation {
-  pub fn function(&self) -> fn(f64) -> f64 {
-    match self {
-      Activation::IDENTITY => identity,
-      Activation::SIGMOID => sigmoid,
-      Activation::RELU => relu
+    pub fn function(&self) -> fn(f64) -> f64 {
+        match self {
+            Activation::IDENTITY => identity,
+            Activation::SIGMOID => sigmoid,
+            Activation::RELU => relu,
+        }
     }
-  }
 }
 
 fn identity(x: f64) -> f64 {
-  x
+    x
 }
 
 fn sigmoid(x: f64) -> f64 {
-  1.0 / (1.0 + (-x).exp())
+    1.0 / (1.0 + (-x).exp())
 }
 
 fn relu(x: f64) -> f64 {
-  if x > 0.0 {
-    x
-  } else {
-    0.0
-  }
+    if x > 0.0 {
+        x
+    } else {
+        0.0
+    }
 }

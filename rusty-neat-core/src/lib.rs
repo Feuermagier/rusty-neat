@@ -1,9 +1,9 @@
+pub mod activation;
+mod config_util;
 pub mod gene_pool;
 pub mod genome;
-pub mod activation;
-pub mod serialize;
-pub mod population;
-pub mod species;
 pub mod organism;
+pub mod population;
 pub mod reproduction;
-mod config_util;
+pub mod serialize;
+pub mod species;
