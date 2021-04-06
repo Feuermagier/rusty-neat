@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "rusty-neat-core",
+	"rusty-neat-gui"
+]

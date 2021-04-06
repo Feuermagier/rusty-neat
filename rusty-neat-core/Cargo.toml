@@ -1,5 +1,5 @@
 [package]
-name = "rusty-neat"
+name = "rusty-neat-core"
 version = "0.1.0"
 authors = ["Florian Seligmann <floseligmann@web.de>"]
 edition = "2018"
