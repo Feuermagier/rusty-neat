@@ -1,11 +1,15 @@
-use druid::Widget;
+use std::rc::Rc;
+
+use druid::{Widget, Lens, Data};
 use im::Vector;
 
-pub struct Genome<'a> {
-    nodes: Vector<Node>,
-    connections: Vector<Connection<'a>>,
+#[derive(Clone, Lens, Data)]
+pub struct Genome {
+    nodes: Vector<Rc<Node>>,
+    connections: Vector<Rc<Connection>>,
 }
 
+#[derive(Clone, Lens, Data)]
 pub struct Node {
     id: usize,
     x: f64,
@@ -14,16 +18,17 @@ pub struct Node {
     bias: f64,
 }
 
-pub struct Connection<'genome> {
-    start: &'genome Node,
-    end: &'genome Node,
+#[derive(Clone, Lens, Data)]
+pub struct Connection {
+    start: Rc<Node>,
+    end: Rc<Node>,
     enabled: bool,
     weight: f64,
 }
 
 struct GenomeWidget;
 
-impl Widget<Genome> for GenomeWidget {
+impl <'a> Widget<Genome<'a>> for GenomeWidget {
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
