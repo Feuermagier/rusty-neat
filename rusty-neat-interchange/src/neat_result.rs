@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     genome::PrintableGenome,
     io::{self, FileType},
@@ -12,12 +14,12 @@ pub struct PrintableNeatResult {
 
 pub fn write<T: Into<PrintableNeatResult>>(
     result: T,
-    path: &str,
+    path: &Path,
     file_type: FileType,
 ) -> Result<(), String> {
     io::write(path, result.into(), file_type)
 }
 
-pub fn read<T: From<PrintableNeatResult>>(path: &str, file_type: FileType) -> Result<T, String> {
-    io::read(path, file_type).map(|content: PrintableNeatResult| content.into())
+pub fn read<T: From<PrintableNeatResult>>(path: &Path) -> Result<T, String> {
+    io::read(path).map(|content: PrintableNeatResult| content.into())
 }

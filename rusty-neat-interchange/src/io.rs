@@ -1,4 +1,4 @@
-use std::{error::Error, fs};
+use std::{error::Error, fs, path::Path};
 
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -29,7 +29,7 @@ impl FileType {
 }
 
 pub(crate) fn write<T: Serialize>(
-    path: &str,
+    path: &Path,
     content: T,
     file_type: FileType,
 ) -> Result<(), String> {
@@ -47,9 +47,13 @@ pub(crate) fn write<T: Serialize>(
     Ok(fs::write(path, file_content).map_err(stringify)?)
 }
 
-pub(crate) fn read<T: DeserializeOwned>(path: &str, file_type: FileType) -> Result<T, String> {
+pub(crate) fn read<T: DeserializeOwned>(path: &Path) -> Result<T, String> {
+    if path.is_dir() {
+        return Err("path is an directory".to_string());
+    }
+
     let file_content = fs::read(path).map_err(stringify)?;
-    match file_type {
+    match FileType::from_ext(path.extension().expect("file has no extension").to_str().expect("Invalid extensio: Could not be converted to a rust string"))? {
         FileType::PrettyJSON => serde_json::from_slice(&file_content).map_err(stringify),
         FileType::CompactJSON => serde_json::from_slice(&file_content).map_err(stringify),
         FileType::Bincode => bincode::deserialize(&file_content).map_err(stringify),

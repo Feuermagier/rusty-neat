@@ -29,7 +29,6 @@
     "allow_elitism": true,
     "elitism_limit": 20,
     "elitism_count": 2,
-    "global_strategy": "Fair",
     "species_strategy": "Random",
     "large_species_size": 30,
     "crossover": {

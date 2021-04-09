@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 
 use crate::io::{self, FileType};
@@ -5,6 +7,8 @@ use crate::io::{self, FileType};
 pub struct PrintableGenome {
     pub connections: Vec<PrintableConnectionGene>,
     pub nodes: Vec<usize>,
+    pub id: u64,
+    pub generation: u32
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,12 +20,12 @@ pub struct PrintableConnectionGene {
 
 pub fn write<T: Into<PrintableGenome>>(
     genome: T,
-    path: &str,
+    path: &Path,
     file_type: FileType,
 ) -> Result<(), String> {
     io::write(path, genome.into(), file_type)
 }
 
-pub fn read<T: From<PrintableGenome>>(path: &str, file_type: FileType) -> Result<T, String> {
-    io::read(path, file_type).map(|content: PrintableGenome| content.into())
+pub fn read<T: From<PrintableGenome>>(path: &Path) -> Result<T, String> {
+    io::read(path).map(|content: PrintableGenome| content.into())
 }

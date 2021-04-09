@@ -12,28 +12,56 @@ use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Distribution;
 use rusty_neat_interchange::genome::{PrintableConnectionGene, PrintableGenome};
 
+pub(crate) struct GenomeIdGenerator {
+    next_id: u64
+}
+
+impl GenomeIdGenerator {
+    pub(crate) fn new() -> Self {
+        GenomeIdGenerator{
+            next_id: 0
+        }
+    }
+
+    pub(crate) fn next_id(&mut self) -> u64 {
+        self.next_id += 1;
+        self.next_id - 1
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Genome {
+    id: u64,
     connections: Vec<ConnectionGene>,
     connection_mappings: BTreeMap<usize, usize>, // innovation -> Index in connections
     nodes: Vec<NodeGene>,
     node_mappings: HashMap<usize, usize>, // node_id -> gene_id
     next_iteration: u64,
+    generation: u32     // Die Generation, in der das Genom erstellt wurde
 }
 
 impl Genome {
-    pub fn new() -> Genome {
+    pub fn new(id: u64, generation: u32) -> Genome {
         Genome {
+            id,
             connections: Vec::new(),
             connection_mappings: BTreeMap::new(),
             nodes: Vec::new(),
             node_mappings: HashMap::new(),
             next_iteration: 1,
+            generation
         }
     }
 
+    pub fn from_genome(genome: &Genome, id: u64, generation: u32) -> Genome {
+        let mut genome = genome.clone();
+        genome.id = id;
+        genome.generation = generation;
+        genome
+    }
+
     pub fn from_printable(printable_genome: &PrintableGenome, pool: &GenePool) -> Self {
-        let mut genome = Genome::new();
+        let mut genome = Genome::new(printable_genome.id, printable_genome.generation);
 
         for node in &printable_genome.nodes {
             genome.add_node(*node);
@@ -192,7 +220,9 @@ impl Genome {
         (disjoint * config.c1 + excess * config.c2) / n + weight_difference / similar * config.c3
     }
 
-    pub fn mutate(&mut self, pool: &mut GenePool, config: &MutationConfig) {
+    pub fn mutate(&mut self, pool: &mut GenePool, config: &MutationConfig, new_id: u64, new_generation: u32) {
+        self.id = new_id;
+        self.generation = new_generation;
         self.mutate_connections(config);
 
         if rand::thread_rng().gen_bool(config.add_node_prob) {
@@ -291,8 +321,8 @@ impl Genome {
         &self.connections[*self.connection_mappings.get(&innovation).unwrap()]
     }
 
-    pub fn crossover(&self, other: &Genome, pool: &GenePool, config: &CrossoverConfig) -> Genome {
-        let mut offspring = Genome::new();
+    pub fn crossover(&self, other: &Genome, pool: &GenePool, config: &CrossoverConfig, offspring_id: u64, offspring_generation: u32) -> Genome {
+        let mut offspring = Genome::new(offspring_id, offspring_generation);
 
         let mut my_connections = self.connection_mappings.keys().peekable();
         let mut other_connections = other.connection_mappings.keys().peekable();
@@ -359,6 +389,8 @@ impl Genome {
 impl Into<PrintableGenome> for &Genome {
     fn into(self) -> PrintableGenome {
         let mut printable = PrintableGenome {
+            id: self.id,
+            generation: self.generation,
             connections: Vec::new(),
             nodes: self.node_mappings.keys().map(|n| *n).collect(),
         };

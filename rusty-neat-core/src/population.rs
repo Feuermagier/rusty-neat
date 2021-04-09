@@ -1,29 +1,24 @@
 use core::f64;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fs, rc::Rc};
+use std::{cell::RefCell, fs, path::Path, rc::Rc};
 
-use rusty_neat_interchange::{gene_pool::{self, PrintableGenePool}, generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
+use rusty_neat_interchange::{generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
 
-use crate::{
-    config_util::assert_not_negative,
-    gene_pool::GenePool,
-    genome::{DistanceConfig, EvaluationConfig, NewConnectionWeight},
-    organism::Organism,
-    reproduction::{self, ReproductionConfig},
-    species::{Species, SpeciesConfig},
-};
+use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, GenomeIdGenerator, NewConnectionWeight}, organism::Organism, reproduction::{self, ReproductionConfig}, species::{Species, SpeciesConfig}};
 
 pub struct Population {
     config: Rc<PopulationConfig>,
     pool: Rc<RefCell<GenePool>>,
     pub(crate) organisms: Vec<Rc<Organism>>,
     pub(crate) species: Vec<Species>,
+    next_species_id: usize,
+    genome_id_generator: Rc<RefCell<GenomeIdGenerator>>
 }
 
 impl Population {
-    pub fn new(pool: GenePool, config_path: &str) -> Result<Population, String> {
+    pub fn new(pool: GenePool, config_path: &Path) -> Result<Population, String> {
         let config: PopulationConfig =
-            serde_json::from_str(&fs::read_to_string(config_path).unwrap()).unwrap();
+            serde_json::from_str(&fs::read_to_string(config_path).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
         if let Err(msg) = config.validate() {
             return Err(msg);
         }
@@ -32,6 +27,8 @@ impl Population {
             organisms: Vec::with_capacity(1),
             config: Rc::from(config),
             species: Vec::with_capacity(1),
+            next_species_id: 0,
+            genome_id_generator: Rc::from(RefCell::from(GenomeIdGenerator::new()))
         };
         Ok(population)
     }
@@ -39,10 +36,10 @@ impl Population {
     pub fn evolve<F: Fn(&mut [Organism]) -> ()>(
         &mut self,
         fitness_function: F,
-        target_path: &str,
+        target_path: &Path,
     ) -> Result<Organism, String> {
-        fs::remove_dir_all(target_path).map_err(|err| err.to_string())?;
-        fs::create_dir_all(target_path).map_err(|err| err.to_string())?;
+        
+        prepare_target_directory(target_path)?;
 
         self.generate_initial_population(&fitness_function);
 
@@ -66,6 +63,8 @@ impl Population {
                 Rc::clone(&self.pool),
                 Rc::clone(&self.config.reproduction),
                 Rc::clone(&self.config.evaluation),
+                Rc::clone(&self.genome_id_generator),
+                generation
             );
 
             // Der Benutzer bewertet die Organismen
@@ -93,14 +92,14 @@ impl Population {
             println!("Speciating...\n");
             self.speciate();
 
-            self.write_generation(generation, target_path, FileType::PrettyJSON);
+            self.write_generation(generation, target_path, FileType::PrettyJSON)?;
 
             generation += 1;
         }
 
-        self.write_result(
+        write_result(
             Rc::clone(&best_organism),
-            &(target_path.to_owned() + "/result.bin"),
+            target_path,
             FileType::Bincode,
         );
 
@@ -115,7 +114,7 @@ impl Population {
             organisms.push(Organism::new(
                 self.pool
                     .borrow_mut()
-                    .new_genome(&self.config.initial_organism_weight),
+                    .new_genome(&self.config.initial_organism_weight, self.genome_id_generator.borrow_mut().next_id(), 0),
                 Rc::clone(&self.pool),
                 Rc::clone(&self.config.evaluation),
             ));
@@ -136,6 +135,7 @@ impl Population {
                 species.select_new_representative(),
                 Rc::clone(&self.pool),
                 Rc::clone(&self.config.species),
+                species.id
             ));
         }
 
@@ -154,7 +154,9 @@ impl Population {
                     Rc::clone(&organism),
                     Rc::clone(&self.pool),
                     Rc::clone(&self.config.species),
+                    self.next_species_id
                 );
+                self.next_species_id += 1;
                 species.add_organism(Rc::clone(&organism));
                 new_species.push(species);
             }
@@ -166,24 +168,14 @@ impl Population {
         self.species = new_species;
     }
 
-    fn write_generation(&self, generation_number: u32, path: &str, file_type: FileType) {
+    fn write_generation(&self, generation_number: u32, path: &Path, file_type: FileType) -> Result<(), String> {
         let generation = PrintableGeneration {
             generation: generation_number,
             species: self.species.iter().map(|s| s.into()).collect(),
+            pool: (&(*self.pool.borrow())).into()
         };
 
-        generation::write(generation, &(path.to_string() + "/gen-" + &generation_number.to_string() + file_type.to_ext()), file_type).unwrap();
-
-        gene_pool::write::<PrintableGenePool>((&(*self.pool.borrow())).into(), &(path.to_string() + "/pool-" + &generation_number.to_string() + file_type.to_ext()), file_type).unwrap();
-    }
-
-    fn write_result(&self, best_organism: Rc<Organism>, path: &str, file_type: FileType) {
-        let result = PrintableNeatResult {
-            best_genome: (&best_organism.genome).into(),
-            best_fitness: best_organism.fitness.unwrap(),
-        };
-
-        neat_result::write(result, path, file_type).unwrap();
+        generation::write(generation, &path.join("gen-".to_owned() + &generation_number.to_string() + file_type.to_ext()), file_type)
     }
 }
 
@@ -205,4 +197,24 @@ impl PopulationConfig {
             .and(self.species.validate())
             .and(self.reproduction.validate())
     }
+}
+
+fn prepare_target_directory(target_path: &Path) -> Result<(), String> {
+    if target_path.is_file() {
+        return Err("target_path refers to a file".to_owned());
+    }
+
+    if target_path.exists() {
+        fs::remove_dir_all(target_path).map_err(|err| err.to_string())?;
+    }
+    fs::create_dir_all(target_path).map_err(|err| err.to_string())
+}
+
+fn write_result(best_organism: Rc<Organism>, path: &Path, file_type: FileType) {
+    let result = PrintableNeatResult {
+        best_genome: (&best_organism.genome).into(),
+        best_fitness: best_organism.fitness.unwrap(),
+    };
+
+    neat_result::write(result, &path.join("result".to_owned() + file_type.to_ext()), file_type).unwrap();
 }

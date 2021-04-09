@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone)]
 pub(crate) struct Species {
     pub(crate) organisms: Vec<Rc<Organism>>,
+    pub(crate) id: usize,
     representative: Rc<Organism>,
     fitness: Option<f64>,
     pool: Rc<RefCell<GenePool>>,
@@ -26,6 +27,7 @@ impl Species {
         representative: Rc<Organism>,
         pool: Rc<RefCell<GenePool>>,
         config: Rc<SpeciesConfig>,
+        id: usize
     ) -> Species {
         Species {
             organisms: Vec::new(),
@@ -33,6 +35,7 @@ impl Species {
             fitness: Option::None,
             pool,
             config,
+            id
         }
     }
 
@@ -50,6 +53,7 @@ impl Species {
             )),
             Rc::clone(&pool),
             Rc::clone(&config),
+            printable.id
         );
 
         species.fitness = printable.fitness;
@@ -120,6 +124,7 @@ impl Into<PrintableSpecies> for &Species {
             representative: self.representative.as_ref().into(),
             organisms: Vec::with_capacity(self.organisms.len()),
             fitness: self.try_adjusted_fitness(),
+            id: self.id
         };
 
         for organism in &self.organisms {

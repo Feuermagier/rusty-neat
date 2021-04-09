@@ -1,43 +1,18 @@
-use std::{
-    cell::RefCell,
-    cmp::{max, min},
-    rc::Rc,
-};
+use std::{cell::RefCell, cmp::{max, min}, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
 use rand::prelude::SliceRandom;
 
-use crate::{
-    config_util::assert_not_negative,
-    gene_pool::GenePool,
-    genome::{CrossoverConfig, EvaluationConfig, MutationConfig},
-    organism::Organism,
-    population::Population,
-    species::Species,
-};
+use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{CrossoverConfig, EvaluationConfig, GenomeIdGenerator, MutationConfig}, organism::Organism, population::Population, species::Species};
 
 pub(crate) fn reproduce(
     population: &mut Population,
     pool: Rc<RefCell<GenePool>>,
     config: Rc<ReproductionConfig>,
     evaluation_config: Rc<EvaluationConfig>,
-) -> Vec<Organism> {
-    match config.global_strategy {
-        GlobalReproductionStrategy::Probability => {
-            reproduce_probabilistic(population, pool, config.as_ref(), evaluation_config)
-        }
-        GlobalReproductionStrategy::Fair => {
-            reproduce_fair(population, pool, config.as_ref(), evaluation_config)
-        }
-    }
-}
-
-fn reproduce_fair(
-    population: &mut Population,
-    pool: Rc<RefCell<GenePool>>,
-    config: &ReproductionConfig,
-    evaluation_config: Rc<EvaluationConfig>,
+    genome_id_generator: Rc<RefCell<GenomeIdGenerator>>,
+    generation: u32
 ) -> Vec<Organism> {
     let mut new_population: Vec<Organism> = Vec::with_capacity(config.organism_count);
 
@@ -58,22 +33,15 @@ fn reproduce_fair(
             species,
             target_count,
             Rc::clone(&pool),
-            config,
+            config.as_ref(),
             Rc::clone(&evaluation_config),
             &mut new_population,
+            genome_id_generator.as_ref(),
+            generation
         )
     }
 
     new_population
-}
-
-fn reproduce_probabilistic(
-    population: &mut Population,
-    pool: Rc<RefCell<GenePool>>,
-    config: &ReproductionConfig,
-    evaluation_config: Rc<EvaluationConfig>,
-) -> Vec<Organism> {
-    todo!();
 }
 
 fn reproduce_species(
@@ -83,6 +51,8 @@ fn reproduce_species(
     config: &ReproductionConfig,
     evaluation_config: Rc<EvaluationConfig>,
     new_population: &mut Vec<Organism>,
+    genome_id_generator: &RefCell<GenomeIdGenerator>,
+    generation: u32
 ) {
     // Organismen innerhalb der Spezies sortieren
     species.organisms.sort_unstable();
@@ -113,7 +83,7 @@ fn reproduce_species(
     for _ in 0..mutation_count {
         let parent = select_parent(species, &config.species_strategy, limit);
         let mut offspring = (*parent).clone();
-        mutate_organism(&mut offspring, &pool, target_count, config);
+        mutate_organism(&mut offspring, &pool, target_count, config, genome_id_generator.borrow_mut().next_id(), generation);
         offspring.fitness = None;
         new_population.push(offspring);
     }
@@ -126,12 +96,12 @@ fn reproduce_species(
         let mut offspring = Organism::new(
             first_parent
                 .genome
-                .crossover(&second_parent.genome, &pool.borrow(), &config.crossover),
+                .crossover(&second_parent.genome, &pool.borrow(), &config.crossover, genome_id_generator.borrow_mut().next_id(), generation),
             Rc::clone(&pool),
             Rc::clone(&evaluation_config),
         );
 
-        mutate_organism(&mut offspring, &pool, target_count, config);
+        mutate_organism(&mut offspring, &pool, target_count, config, genome_id_generator.borrow_mut().next_id(), generation);
         new_population.push(offspring);
     }
 }
@@ -156,15 +126,17 @@ fn mutate_organism(
     pool: &Rc<RefCell<GenePool>>,
     species_size: usize,
     config: &ReproductionConfig,
+    new_id: u64,
+    generation: u32
 ) {
     if species_size >= config.large_species_size {
         organism
             .genome
-            .mutate(&mut pool.borrow_mut(), &config.large_intensity_config);
+            .mutate(&mut pool.borrow_mut(), &config.large_intensity_config, new_id, generation);
     } else {
         organism
             .genome
-            .mutate(&mut pool.borrow_mut(), &config.large_intensity_config);
+            .mutate(&mut pool.borrow_mut(), &config.large_intensity_config, new_id, generation);
     }
 }
 
@@ -177,7 +149,6 @@ pub struct ReproductionConfig {
     pub allow_elitism: bool, // Ob Genome unverändert übernommen werden dürfen
     pub elitism_limit: usize, // Minimale Anzahl an Genomen in einer Spezies, damit elitism_count Genome unverändert in die nächste Generation übernommen werden
     pub elitism_count: usize, // Anzahl der Organismen einer Spezies die unverändert in die nächste Generation übernommen werden. Muss <= elitism_limit sein
-    pub global_strategy: GlobalReproductionStrategy, // Wie die Organismen auf die Spezies verteilt werden sollen
     pub species_strategy: SpeciesReproductionStrategy, // Wie die Organismen sich innerhalb einer Spezies reproduzieren
     pub large_species_size: usize, // Ab dieser Anzahl an Organismen zählt eine Spezies als groß und mutiert stärker
     pub crossover: CrossoverConfig, // Wie die Kreuzung funktionieren soll
@@ -196,12 +167,6 @@ impl ReproductionConfig {
             .and(self.crossover.validate())
             .and(self.large_intensity_config.validate())
     }
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum GlobalReproductionStrategy {
-    Probability, // Bessere Spezies haben eine höhere Wahrscheinlichkeit, neue Organismen stellen zu dürfen
-    Fair, // Jede Spezies bekommt eine feste Anzahl an neuen Organismen zugeteilt, die von ihrer Fitness abhängt
 }
 
 #[derive(Serialize, Deserialize)]

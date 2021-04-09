@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 
 use crate::io::{self, FileType};
@@ -31,12 +33,12 @@ pub enum PrintableNodeType {
 
 pub fn write<T: Into<PrintableGenePool>>(
     pool: T,
-    path: &str,
+    path: &Path,
     file_type: FileType,
 ) -> Result<(), String> {
     io::write(path, pool.into(), file_type)
 }
 
-pub fn read<T: From<PrintableGenePool>>(path: &str, file_type: FileType) -> Result<T, String> {
-    io::read(path, file_type).map(|content: PrintableGenePool| content.into())
+pub fn read<T: From<PrintableGenePool>>(path: &Path) -> Result<T, String> {
+    io::read(path).map(|content: PrintableGenePool| content.into())
 }

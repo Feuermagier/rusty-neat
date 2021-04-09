@@ -1456,6 +1456,7 @@ version = "0.1.0"
 dependencies = [
  "druid",
  "im",
+ "rusty-neat-interchange",
  "serde",
  "serde_json",
 ]

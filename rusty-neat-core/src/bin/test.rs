@@ -1,10 +1,10 @@
 use rusty_neat_core::{gene_pool::GenePool, population::Population};
 
-use rusty_neat_interchange::io::FileType;
+use std::path::Path;
 
 fn main() {
     let pool = GenePool::new_dense(3, 1);
-    let mut population = Population::new(pool, "config.json").unwrap();
+    let mut population = Population::new(pool, Path::new("config.json")).unwrap();
     let none = vec![0.0, 0.0, 1.0];
     let first = vec![1.0, 0.0, 1.0];
     let second = vec![0.0, 1.0, 1.0];
@@ -30,7 +30,7 @@ fn main() {
                     organism.fitness = Some(4.0 - score);
                 })
             },
-            "xor_population",
+            Path::new("xor_population"),
         )
         .unwrap();
     println!("");
@@ -42,9 +42,6 @@ fn main() {
     println!("1 xor 0: {:.3}", organism.evaluate(&first)[0]);
     println!("0 xor 1: {:.3}", organism.evaluate(&second)[0]);
     println!("1 xor 1: {:.3}", organism.evaluate(&both)[0]);
-
-    rusty_neat_interchange::organism::write(&organism, "best.json", FileType::PrettyJSON)
-        .unwrap();
 
     /*
     let mut pool = GenePool::new();

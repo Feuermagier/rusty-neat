@@ -168,8 +168,8 @@ impl GenePool {
         }
     }
 
-    pub fn new_genome(&self, weight_strategy: &NewConnectionWeight) -> Genome {
-        let mut genome = Genome::new();
+    pub fn new_genome(&self, weight_strategy: &NewConnectionWeight, id: u64, generation: u32) -> Genome {
+        let mut genome = Genome::new(id, generation);
 
         for node in &self.nodes {
             genome.add_node(node.id);

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -12,12 +14,12 @@ pub struct PrintableOrganism {
 
 pub fn write<T: Into<PrintableOrganism>>(
     organism: T,
-    path: &str,
+    path: &Path,
     file_type: FileType,
 ) -> Result<(), String> {
     io::write(path, organism.into(), file_type)
 }
 
-pub fn read<T: From<PrintableOrganism>>(path: &str, file_type: FileType) -> Result<T, String> {
-    io::read(path, file_type).map(|content: PrintableOrganism| content.into())
+pub fn read<T: From<PrintableOrganism>>(path: &Path) -> Result<T, String> {
+    io::read(path).map(|content: PrintableOrganism| content.into())
 }
