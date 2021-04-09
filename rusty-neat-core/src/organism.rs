@@ -1,9 +1,9 @@
 use std::{cell::RefCell, fmt, rc::Rc};
 
-use crate::{
-    gene_pool::GenePool,
-    genome::{DistanceConfig, EvaluationConfig, Genome},
-};
+use rusty_neat_interchange::organism::PrintableOrganism;
+use serde::{Deserialize, Serialize};
+
+use crate::{gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, Genome}};
 
 #[derive(Clone)]
 pub struct Organism {
@@ -27,6 +27,15 @@ impl Organism {
         }
     }
 
+    pub fn from_printable(printable: &PrintableOrganism, pool: Rc<RefCell<GenePool>>, evaluation_config: Rc<EvaluationConfig>) -> Self {
+        Organism {
+            genome: Genome::from_printable(&printable.genome, &pool.borrow()),
+            pool: Rc::clone(&pool),
+            evaluation_config,
+            fitness: printable.fitness
+        }
+    }
+
     pub fn evaluate(&mut self, input: &Vec<f64>) -> Vec<f64> {
         self.genome
             .evaluate(input, &self.pool.borrow(), self.evaluation_config.as_ref())
@@ -34,6 +43,15 @@ impl Organism {
 
     pub(crate) fn distance(&self, other: &Organism, config: Rc<DistanceConfig>) -> f64 {
         self.genome.distance(&other.genome, config.as_ref())
+    }
+}
+
+impl Into<PrintableOrganism> for Organism {
+    fn into(self) -> PrintableOrganism {
+        PrintableOrganism {
+            genome: self.genome.into(),
+            fitness: self.fitness,
+        }
     }
 }
 

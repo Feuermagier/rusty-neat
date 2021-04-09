@@ -1,5 +1,8 @@
 use core::f64;
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fs, rc::Rc};
+use serde::{Deserialize, Serialize};
+
+use rusty_neat_interchange::{generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
 
 use crate::{
     config_util::assert_not_negative,
@@ -18,7 +21,8 @@ pub struct Population {
 }
 
 impl Population {
-    pub fn new(pool: GenePool, config: PopulationConfig) -> Result<Population, String> {
+    pub fn new(pool: GenePool, config_path: &str) -> Result<Population, String> {
+        let config: PopulationConfig = serde_json::from_str(&fs::read_to_string(config_path).unwrap()).unwrap();
         if let Err(msg) = config.validate() {
             return Err(msg);
         }
@@ -31,7 +35,10 @@ impl Population {
         Ok(population)
     }
 
-    pub fn evolve<F: Fn(&mut [Organism]) -> ()>(&mut self, fitness_function: F) -> Organism {
+    pub fn evolve<F: Fn(&mut [Organism]) -> ()>(&mut self, fitness_function: F, target_path: &str) -> Result<Organism, String> {
+        fs::remove_dir_all(target_path).map_err(|err| err.to_string())?;
+        fs::create_dir_all(target_path).map_err(|err| err.to_string())?;
+
         self.generate_initial_population(&fitness_function);
 
         let target_fitness = self.config.target_fitness;
@@ -81,10 +88,14 @@ impl Population {
             println!("Speciating...\n");
             self.speciate();
 
+            self.write_generation(generation, &(target_path.to_owned() + "/gen-" + &generation.to_string() + ".bin"), FileType::Bincode);
+
             generation += 1;
         }
 
-        (*best_organism).clone()
+        self.write_result(Rc::clone(&best_organism), &(target_path.to_owned() + "/result.bin"), FileType::Bincode);
+
+        Ok((*best_organism).clone())
     }
 
     fn generate_initial_population<F: Fn(&mut [Organism]) -> ()>(&mut self, fitness_function: F) {
@@ -140,16 +151,35 @@ impl Population {
             }
         }
 
-        // Ausgelöschte SPezies entfernen
+        // Ausgelöschte Spezies entfernen
         new_species.retain(|s| !s.organisms.is_empty());
 
         self.species = new_species;
     }
+
+    fn write_generation(&self, generation: u32, path: &str, file_type: FileType) {
+        let generation = PrintableGeneration {
+            generation,
+            species: self.species.iter().map(|s| (*s).clone().into()).collect(),
+        };
+
+        generation::write(generation, path, file_type).unwrap();
+    }
+
+    fn write_result(&self, best_organism: Rc<Organism>, path: &str, file_type: FileType) {
+        let result = PrintableNeatResult {
+            best_genome: best_organism.genome.clone().into(),
+            best_fitness: best_organism.fitness.unwrap()
+        };
+
+        neat_result::write(result, path, file_type);
+    }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct PopulationConfig {
     pub target_fitness: f64, // Wird diese Fitness erreicht oder überschritten wird abgebrochen
-    pub max_generations: usize, // So viele Generationen werden höchstens durchlaufen (0 entspricht unbegrenzt)
+    pub max_generations: u32, // So viele Generationen werden höchstens durchlaufen (0 entspricht unbegrenzt)
     pub initial_organism_weight: NewConnectionWeight, // So wird das Gewicht der Connections in den initialen Genomen bestimmt
     pub distance: Rc<DistanceConfig>,
     pub species: Rc<SpeciesConfig>,

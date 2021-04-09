@@ -1,17 +1,14 @@
 use core::fmt;
 use std::{cmp::max, collections::BTreeMap, rc::Rc};
-
-use crate::{
-    activation::Activation,
-    config_util,
-    gene_pool::{Connection, GenePool, NodeType},
-};
-use hashbrown::HashMap;
-use rand::{prelude::SliceRandom, Rng};
-use rand_distr::{Distribution, Normal};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+use crate::{activation::Activation, config_util::{self, NormalDistribution}, gene_pool::{Connection, GenePool, NodeType}};
+use hashbrown::HashMap;
+use rand::{prelude::SliceRandom, Rng};
+use rand_distr::Distribution;
+use rusty_neat_interchange::genome::{PrintableConnectionGene, PrintableGenome};
+
+#[derive(Debug, Clone)]
 pub struct Genome {
     connections: Vec<ConnectionGene>,
     connection_mappings: BTreeMap<usize, usize>, // innovation -> Index in connections
@@ -29,6 +26,20 @@ impl Genome {
             node_mappings: HashMap::new(),
             next_iteration: 1,
         }
+    }
+
+    pub fn from_printable(printable_genome: &PrintableGenome, pool: &GenePool) -> Self {
+        let mut genome = Genome::new();
+
+        for node in &printable_genome.nodes {
+            genome.add_node(*node);
+        }
+
+        for connection in &printable_genome.connections {
+            genome.add_connection(Rc::clone(&pool.connections[connection.innovation]), connection.weight, connection.enabled);
+        }
+
+        genome
     }
 
     pub fn node_count(&self) -> usize {
@@ -193,9 +204,9 @@ impl Genome {
                     connection.enabled = !connection.enabled;
                 } else if connection.enabled {
                     if rng.gen_bool(config.shift_weight_prob) {
-                        connection.weight += config.shift_weight_dist.sample(rng);
+                        connection.weight += config.shift_weight_dist.to_dist().sample(rng);
                     } else {
-                        connection.weight = config.random_weight_dist.sample(rng);
+                        connection.weight = config.random_weight_dist.to_dist().sample(rng);
                     }
                 }
             });
@@ -337,6 +348,21 @@ impl Genome {
     }
 }
 
+impl Into<PrintableGenome> for Genome {
+    fn into(self) -> PrintableGenome {
+        let mut printable = PrintableGenome {
+            connections: Vec::new(),
+            nodes: self.node_mappings.keys().map(|n|*n).collect(),
+        };
+
+        for connection in self.connections {
+            printable.connections.push(PrintableConnectionGene { innovation: connection.innovation, weight: connection.weight, enabled: connection.enabled });
+        }
+
+        printable
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 struct ConnectionGene {
     innovation: usize,
@@ -367,6 +393,7 @@ impl fmt::Debug for ConnectionGene {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct NodeGene {
     node_id: usize,
+    #[serde(skip)]
     incoming_connections: Vec<usize>, // Bezieht sich auf den Index im Genome
     #[serde(skip)]
     evaluation: EvaluationValue,
@@ -399,11 +426,12 @@ pub struct EvaluationConfig {
     pub activation: Activation,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct MutationConfig {
     pub change_weight_prob: f64, // Wahrscheinlichkeit, dass das Gewicht jedes einzelnen ConnectionGenes verändert wird
-    pub random_weight_dist: Normal<f64>, // Standardabweichung s der N(0, s)-Verteilung für den zufälligen Wert der Connection bei einem weight change ohne shift
+    pub random_weight_dist: NormalDistribution, // Standardabweichung s der N(0, s)-Verteilung für den zufälligen Wert der Connection bei einem weight change ohne shift
     pub shift_weight_prob: f64, // Wahrscheinlichkeit, dass weight change das Gewicht shiftet und nicht zufällig neu setzt
-    pub shift_weight_dist: Normal<f64>, // Standardabweichung s der N(0, s)-Verteilung für den shift eines weight shifts
+    pub shift_weight_dist: NormalDistribution, // Standardabweichung s der N(0, s)-Verteilung für den shift eines weight shifts
     pub add_node_prob: f64,             // Wahrscheinlichkeit, dass ein neuer Node hinzugefügt wird
     pub add_connection_prob: f64, // Wahrscheinlichkeit, dass eine neue Connection zwischen bestehenden Nodes hinzugefügt wird
     pub add_connection_retry_count: u32, // Anzahl der Versuche, zwei passende Nodes für eine neue Connnection auszulosen
@@ -433,20 +461,22 @@ impl MutationConfig {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum NewConnectionWeight {
-    Random(Normal<f64>),
+    Random(NormalDistribution),
     Fixed(f64),
 }
 
 impl NewConnectionWeight {
     fn sample_weight(strategy: &NewConnectionWeight) -> f64 {
         match strategy {
-            NewConnectionWeight::Random(dist) => dist.sample(&mut rand::thread_rng()),
+            NewConnectionWeight::Random(dist) => dist.to_dist().sample(&mut rand::thread_rng()),
             &NewConnectionWeight::Fixed(value) => value,
         }
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CrossoverConfig {
     pub disable_connection_prob: f64, // Wahrscheinlichkeit, dass eine Connection disabled wird, wenn die Connection in einem Elternteil disabled ist
     pub weight_strategy: CrossoverWeightStrategy, // Wie das Gewicht einer Connection die in beiden Eltern vorhanden ist bestimmt werden soll
@@ -458,6 +488,7 @@ impl CrossoverConfig {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum CrossoverWeightStrategy {
     Random, // Gewicht von einem zufälligen Eltern
     Better, // Gewicht des besseren Elternteils

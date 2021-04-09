@@ -1,46 +1,53 @@
 mod genome_widget;
-
-use druid::widget::{Button, Flex, Label};
-use druid::{AppLauncher, Data, LocalizedString, PlatformError, Widget, WidgetExt, WindowDesc};
-
-#[derive(Clone, Data)]
-struct Counter(i32);
+mod data;
+mod commands;
+mod reader;
+use data::GUIModel;
+use druid::{AppLauncher, PlatformError, Point, Selector, Widget, WidgetExt, WindowDesc, widget::{Button, Flex, Label, Either}};
+use genome_widget::{Connection, Genome, GenomeWidget, Node, NodeType};
+use im::vector;
+use std::rc::Rc;
 
 fn main() -> Result<(), PlatformError> {
-    // Window builder. We set title and size
     let main_window = WindowDesc::new(ui_builder)
-        .title("Hello, Druid!")
-        .window_size((200.0, 100.0));
+        .title("rusty-neat-gui")
+        .window_size((1000.0, 800.0));
 
-    // Data to be used in the app (=state)
-    let data: Counter = Counter(0);
+    let first_node = Rc::from(Node {
+        id: 1,
+        position: Point::new(0.7, 0.5),
+        activation: "Test".to_string(),
+        bias: 1.0,
+        node_type: NodeType::OUTPUT(1),
+    });
 
-    // Run the app
+    let second_node = Rc::from(Node {
+        id: 1,
+        position: Point::new(0.2, 0.5),
+        activation: "Test".to_string(),
+        bias: 1.0,
+        node_type: NodeType::INPUT(1),
+    });
+
+    let connection = Rc::from(Connection {
+        start: Rc::clone(&first_node),
+        end: Rc::clone(&second_node),
+        innovation: 0,
+        enabled: true,
+        weight: 10.0
+    });
+
     AppLauncher::with_window(main_window)
-        .use_simple_logger() // Neat!
-        .launch(data)
+        .use_simple_logger()
+        .launch(GUIModel {
+            current_genome: Option::Some(Genome::new(0, vector![Rc::clone(&first_node), Rc::clone(&second_node)], vector![Rc::clone(&connection)]))
+        })
 }
 
-fn ui_builder() -> impl Widget<Counter> {
-    // The label text will be computed dynamically based on the current locale and count
-    let text = LocalizedString::new("hello-counter")
-        .with_arg("count", |data: &Counter, _env| (*data).0.into());
-    let label = Label::new(text).padding(5.0).center();
-
-    // Two buttons with on_click callback
-    let button_plus = Button::new("+1")
-        .on_click(|_ctx, data: &mut Counter, _env| (*data).0 += 1)
-        .padding(5.0);
-    let button_minus = Button::new("-1")
-        .on_click(|_ctx, data: &mut Counter, _env| (*data).0 -= 1)
-        .padding(5.0);
-
-    // Container for the two buttons
-    let flex = Flex::row()
-        .with_child(button_plus)
-        .with_spacer(1.0)
-        .with_child(button_minus);
-
-    // Container for the whole UI
-    Flex::column().with_child(label).with_child(flex)
+fn ui_builder() -> impl Widget<GUIModel> {
+    Flex::column()
+        .with_child(Button::new("Recenter").on_click(|ctx, _data, _env| ctx.submit_command(Selector::new(commands::RECENTER_GENOME_SLECTOR))))
+        .with_default_spacer()
+        .with_flex_child(Either::new(|data: &GUIModel, env| data.current_genome.is_some(),GenomeWidget::new().lens(GUIModel::current_genome), Label::new("No genome selected")), 1.0)
+        .padding(50.0)
 }

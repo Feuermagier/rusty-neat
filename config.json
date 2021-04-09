@@ -1,0 +1,84 @@
+{
+  "target_fitness": 3.8,
+  "max_generations": 200,
+  "initial_organism_weight": {
+    "Random": {
+      "mean": 0.0,
+      "std_dev": 3.0
+    }
+  },
+  "distance": {
+    "c1": 1.0,
+    "c2": 1.0,
+    "c3": 0.3
+  },
+  "species": {
+    "representative": "Random",
+    "fitness": "Mean",
+    "species_distance_tolerance": 3.0
+  },
+  "evaluation": {
+    "bias": 0.0,
+    "activation": "SIGMOID"
+  },
+  "reproduction": {
+    "organism_count": 1000,
+    "min_species_size": 10,
+    "kill_ratio": 0.5,
+    "mutation_ratio": 0.5,
+    "allow_elitism": true,
+    "elitism_limit": 20,
+    "elitism_count": 2,
+    "global_strategy": "Fair",
+    "species_strategy": "Random",
+    "large_species_size": 30,
+    "crossover": {
+      "disable_connection_prob": 0.75,
+      "weight_strategy": "Random"
+    },
+    "small_intensity_config": {
+      "change_weight_prob": 0.8,
+      "random_weight_dist": {
+        "mean": 0.0,
+        "std_dev": 3.0
+      },
+      "shift_weight_prob": 0.9,
+      "shift_weight_dist": {
+        "mean": 0.0,
+        "std_dev": 0.5
+      },
+      "add_node_prob": 0.03,
+      "add_connection_prob": 0.05,
+      "add_connection_retry_count": 100,
+      "new_connection_weight": {
+        "Random": {
+          "mean": 0.0,
+          "std_dev": 3.0
+        }
+      },
+      "toggle_connection_prob": 0.08
+    },
+    "large_intensity_config": {
+      "change_weight_prob": 0.8,
+      "random_weight_dist": {
+        "mean": 0.0,
+        "std_dev": 3.0
+      },
+      "shift_weight_prob": 0.9,
+      "shift_weight_dist": {
+        "mean": 0.0,
+        "std_dev": 0.8
+      },
+      "add_node_prob": 0.03,
+      "add_connection_prob": 0.3,
+      "add_connection_retry_count": 100,
+      "new_connection_weight": {
+        "Random": {
+          "mean": 0.0,
+          "std_dev": 3.0
+        }
+      },
+      "toggle_connection_prob": 0.0
+    }
+  }
+}

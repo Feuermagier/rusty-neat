@@ -4,7 +4,9 @@ use std::{
     rc::Rc,
 };
 
-use rand::prelude::{IteratorRandom, SliceRandom};
+use serde::{Deserialize, Serialize};
+
+use rand::prelude::SliceRandom;
 
 use crate::{
     config_util::assert_not_negative,
@@ -166,6 +168,7 @@ fn mutate_organism(
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ReproductionConfig {
     pub organism_count: usize,   // Anzahl der Organismen in jeder Generation
     pub min_species_size: usize, // Minimale Anzahl an Organismen in einer Spezies
@@ -195,10 +198,13 @@ impl ReproductionConfig {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum GlobalReproductionStrategy {
     Probability, // Bessere Spezies haben eine höhere Wahrscheinlichkeit, neue Organismen stellen zu dürfen
     Fair, // Jede Spezies bekommt eine feste Anzahl an neuen Organismen zugeteilt, die von ihrer Fitness abhängt
 }
+
+#[derive(Serialize, Deserialize)]
 pub enum SpeciesReproductionStrategy {
     Random, // Es werden zufällige Eltern ausgewählt
             // TODO AdjustedRandom    // Bessere Organismen haben eine höhere Wahrscheinlichkeit, Eltern zu werden

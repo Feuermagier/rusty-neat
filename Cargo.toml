@@ -2,5 +2,6 @@
 
 members = [
     "rusty-neat-core",
-	"rusty-neat-gui"
+	"rusty-neat-gui",
+    "rusty-neat-interchange"
 ]

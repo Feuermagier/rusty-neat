@@ -1,0 +1,60 @@
+{
+  "genome": {
+    "connections": [
+      {
+        "innovation": 0,
+        "weight": -4.915814951836384,
+        "enabled": true
+      },
+      {
+        "innovation": 1,
+        "weight": 0.1965304268264491,
+        "enabled": false
+      },
+      {
+        "innovation": 2,
+        "weight": -10.071687740651482,
+        "enabled": true
+      },
+      {
+        "innovation": 60,
+        "weight": 3.7020613202843955,
+        "enabled": true
+      },
+      {
+        "innovation": 61,
+        "weight": 18.899913497145153,
+        "enabled": true
+      },
+      {
+        "innovation": 75,
+        "weight": -1.5574848966663073,
+        "enabled": true
+      },
+      {
+        "innovation": 78,
+        "weight": 10.74983921529915,
+        "enabled": true
+      },
+      {
+        "innovation": 1218,
+        "weight": 2.8810613389537756,
+        "enabled": true
+      },
+      {
+        "innovation": 1219,
+        "weight": -5.2226098030897905,
+        "enabled": true
+      }
+    ],
+    "nodes": [
+      0,
+      32,
+      2,
+      1,
+      590,
+      3
+    ]
+  },
+  "fitness": 3.868275368560153
+}

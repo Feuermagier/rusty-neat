@@ -68,6 +68,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4521f3e3d031370679b3b140beb36dfe4801b09ac77e30c61941f97df3ef28b"
 
 [[package]]
+name = "bincode"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d175dfa69e619905c4c3cdb7c3c203fa3bdd5d51184e3afdb2742c0280493772"
+dependencies = [
+ "byteorder",
+ "serde",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -108,9 +118,9 @@ checksum = "63396b8a4b9de3f4fdfb320ab6080762242f66a8ef174c49d8e19b674db4cdbe"
 
 [[package]]
 name = "byteorder"
-version = "1.4.3"
+version = "1.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 
 [[package]]
 name = "cairo-rs"
@@ -392,6 +402,7 @@ dependencies = [
  "fluent-langneg",
  "fluent-syntax",
  "fnv",
+ "im",
  "instant",
  "log",
  "simple_logger",
@@ -1434,6 +1445,7 @@ dependencies = [
  "itertools 0.10.0",
  "rand",
  "rand_distr",
+ "rusty-neat-interchange",
  "serde",
  "serde_json",
 ]
@@ -1444,6 +1456,17 @@ version = "0.1.0"
 dependencies = [
  "druid",
  "im",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rusty-neat-interchange"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
