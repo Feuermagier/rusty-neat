@@ -356,14 +356,14 @@ impl Genome {
     }
 }
 
-impl Into<PrintableGenome> for Genome {
+impl Into<PrintableGenome> for &Genome {
     fn into(self) -> PrintableGenome {
         let mut printable = PrintableGenome {
             connections: Vec::new(),
             nodes: self.node_mappings.keys().map(|n| *n).collect(),
         };
 
-        for connection in self.connections {
+        for connection in &self.connections {
             printable.connections.push(PrintableConnectionGene {
                 innovation: connection.innovation,
                 weight: connection.weight,

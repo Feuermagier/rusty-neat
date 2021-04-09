@@ -30,11 +30,11 @@ pub enum PrintableNodeType {
 }
 
 pub fn write<T: Into<PrintableGenePool>>(
-    genome: T,
+    pool: T,
     path: &str,
     file_type: FileType,
 ) -> Result<(), String> {
-    io::write(path, genome.into(), file_type)
+    io::write(path, pool.into(), file_type)
 }
 
 pub fn read<T: From<PrintableGenePool>>(path: &str, file_type: FileType) -> Result<T, String> {

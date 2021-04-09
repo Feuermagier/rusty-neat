@@ -19,7 +19,7 @@
   },
   "evaluation": {
     "bias": 0.0,
-    "activation": "SIGMOID"
+    "activation": "Sigmoid"
   },
   "reproduction": {
     "organism_count": 1000,

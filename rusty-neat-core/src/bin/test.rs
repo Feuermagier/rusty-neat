@@ -43,7 +43,7 @@ fn main() {
     println!("0 xor 1: {:.3}", organism.evaluate(&second)[0]);
     println!("1 xor 1: {:.3}", organism.evaluate(&both)[0]);
 
-    rusty_neat_interchange::organism::write(organism.clone(), "best.json", FileType::PrettyJSON)
+    rusty_neat_interchange::organism::write(&organism, "best.json", FileType::PrettyJSON)
         .unwrap();
 
     /*

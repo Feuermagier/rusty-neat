@@ -6,3 +6,4 @@ pub mod organism;
 pub mod population;
 pub mod reproduction;
 pub mod species;
+mod reporter;

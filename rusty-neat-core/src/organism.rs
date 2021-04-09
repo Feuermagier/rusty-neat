@@ -53,10 +53,10 @@ impl Organism {
     }
 }
 
-impl Into<PrintableOrganism> for Organism {
+impl Into<PrintableOrganism> for &Organism {
     fn into(self) -> PrintableOrganism {
         PrintableOrganism {
-            genome: self.genome.into(),
+            genome: (&self.genome).into(),
             fitness: self.fitness,
         }
     }

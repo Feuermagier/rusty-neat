@@ -2,11 +2,7 @@ use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, fs, rc::Rc};
 
-use rusty_neat_interchange::{
-    generation::{self, PrintableGeneration},
-    io::FileType,
-    neat_result::{self, PrintableNeatResult},
-};
+use rusty_neat_interchange::{gene_pool::{self, PrintableGenePool}, generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
 
 use crate::{
     config_util::assert_not_negative,
@@ -97,11 +93,7 @@ impl Population {
             println!("Speciating...\n");
             self.speciate();
 
-            self.write_generation(
-                generation,
-                &(target_path.to_owned() + "/gen-" + &generation.to_string() + ".bin"),
-                FileType::Bincode,
-            );
+            self.write_generation(generation, target_path, FileType::PrettyJSON);
 
             generation += 1;
         }
@@ -174,22 +166,24 @@ impl Population {
         self.species = new_species;
     }
 
-    fn write_generation(&self, generation: u32, path: &str, file_type: FileType) {
+    fn write_generation(&self, generation_number: u32, path: &str, file_type: FileType) {
         let generation = PrintableGeneration {
-            generation,
-            species: self.species.iter().map(|s| (*s).clone().into()).collect(),
+            generation: generation_number,
+            species: self.species.iter().map(|s| s.into()).collect(),
         };
 
-        generation::write(generation, path, file_type).unwrap();
+        generation::write(generation, &(path.to_string() + "/gen-" + &generation_number.to_string() + file_type.to_ext()), file_type).unwrap();
+
+        gene_pool::write::<PrintableGenePool>((&(*self.pool.borrow())).into(), &(path.to_string() + "/pool-" + &generation_number.to_string() + file_type.to_ext()), file_type).unwrap();
     }
 
     fn write_result(&self, best_organism: Rc<Organism>, path: &str, file_type: FileType) {
         let result = PrintableNeatResult {
-            best_genome: best_organism.genome.clone().into(),
+            best_genome: (&best_organism.genome).into(),
             best_fitness: best_organism.fitness.unwrap(),
         };
 
-        neat_result::write(result, path, file_type);
+        neat_result::write(result, path, file_type).unwrap();
     }
 }
 

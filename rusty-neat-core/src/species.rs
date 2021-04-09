@@ -67,23 +67,7 @@ impl Species {
 
     pub fn adjusted_fitness(&mut self) -> f64 {
         if self.fitness.is_none() {
-            self.fitness = Option::Some(
-                match self.config.fitness {
-                    FitnessStrategy::Best => self
-                        .organisms
-                        .iter()
-                        .map(|o| o.fitness.unwrap())
-                        .max_by(|x, y| x.partial_cmp(y).unwrap())
-                        .unwrap(),
-                    FitnessStrategy::Mean => {
-                        self.organisms
-                            .iter()
-                            .map(|o| o.fitness.unwrap())
-                            .sum::<f64>()
-                            / self.organisms.len() as f64
-                    }
-                } / self.organisms.len() as f64,
-            ); // Die Fitness wird durch die Anzahl der Organismen in der Spezies geteilt (Explicit Fitness Sharing)
+            self.fitness = self.try_adjusted_fitness();
         }
 
         self.fitness.unwrap()
@@ -106,18 +90,40 @@ impl Species {
             }
         }
     }
+
+    fn try_adjusted_fitness(&self) -> Option<f64> {
+        if self.organisms.is_empty() {
+            None
+        } else {
+            Some(match self.config.fitness {
+                FitnessStrategy::Best => self
+                    .organisms
+                    .iter()
+                    .map(|o| o.fitness.unwrap())
+                    .max_by(|x, y| x.partial_cmp(y).unwrap())
+                    .unwrap(),
+                FitnessStrategy::Mean => {
+                    self.organisms
+                        .iter()
+                        .map(|o| o.fitness.unwrap())
+                        .sum::<f64>()
+                        / self.organisms.len() as f64
+                }
+            } / self.organisms.len() as f64) // Die Fitness wird durch die Anzahl der Organismen in der Spezies geteilt (Explicit Fitness Sharing)
+        }
+    }
 }
 
-impl Into<PrintableSpecies> for Species {
+impl Into<PrintableSpecies> for &Species {
     fn into(self) -> PrintableSpecies {
         let mut printable = PrintableSpecies {
-            representative: (*self.representative).clone().into(),
+            representative: self.representative.as_ref().into(),
             organisms: Vec::with_capacity(self.organisms.len()),
-            fitness: self.fitness,
+            fitness: self.try_adjusted_fitness(),
         };
 
-        for organism in self.organisms {
-            printable.organisms.push((*organism).clone().into());
+        for organism in &self.organisms {
+            printable.organisms.push(organism.as_ref().into());
         }
 
         printable

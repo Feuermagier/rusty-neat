@@ -3,17 +3,17 @@ use std::f64;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Activation {
-    IDENTITY,
-    SIGMOID,
-    RELU,
+    Identity,
+    Sigmoid,
+    Relu,
 }
 
 impl Activation {
     pub fn function(&self) -> fn(f64) -> f64 {
         match self {
-            Activation::IDENTITY => identity,
-            Activation::SIGMOID => sigmoid,
-            Activation::RELU => relu,
+            Activation::Identity => identity,
+            Activation::Sigmoid => sigmoid,
+            Activation::Relu => relu,
         }
     }
 }
