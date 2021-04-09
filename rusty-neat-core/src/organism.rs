@@ -3,7 +3,10 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use rusty_neat_interchange::organism::PrintableOrganism;
 use serde::{Deserialize, Serialize};
 
-use crate::{gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, Genome}};
+use crate::{
+    gene_pool::GenePool,
+    genome::{DistanceConfig, EvaluationConfig, Genome},
+};
 
 #[derive(Clone)]
 pub struct Organism {
@@ -27,12 +30,16 @@ impl Organism {
         }
     }
 
-    pub fn from_printable(printable: &PrintableOrganism, pool: Rc<RefCell<GenePool>>, evaluation_config: Rc<EvaluationConfig>) -> Self {
+    pub fn from_printable(
+        printable: &PrintableOrganism,
+        pool: Rc<RefCell<GenePool>>,
+        evaluation_config: Rc<EvaluationConfig>,
+    ) -> Self {
         Organism {
             genome: Genome::from_printable(&printable.genome, &pool.borrow()),
             pool: Rc::clone(&pool),
             evaluation_config,
-            fitness: printable.fitness
+            fitness: printable.fitness,
         }
     }
 

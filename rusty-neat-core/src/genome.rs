@@ -1,8 +1,12 @@
 use core::fmt;
-use std::{cmp::max, collections::BTreeMap, rc::Rc};
 use serde::{Deserialize, Serialize};
+use std::{cmp::max, collections::BTreeMap, rc::Rc};
 
-use crate::{activation::Activation, config_util::{self, NormalDistribution}, gene_pool::{Connection, GenePool, NodeType}};
+use crate::{
+    activation::Activation,
+    config_util::{self, NormalDistribution},
+    gene_pool::{Connection, GenePool, NodeType},
+};
 use hashbrown::HashMap;
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Distribution;
@@ -36,7 +40,11 @@ impl Genome {
         }
 
         for connection in &printable_genome.connections {
-            genome.add_connection(Rc::clone(&pool.connections[connection.innovation]), connection.weight, connection.enabled);
+            genome.add_connection(
+                Rc::clone(&pool.connections[connection.innovation]),
+                connection.weight,
+                connection.enabled,
+            );
         }
 
         genome
@@ -352,11 +360,15 @@ impl Into<PrintableGenome> for Genome {
     fn into(self) -> PrintableGenome {
         let mut printable = PrintableGenome {
             connections: Vec::new(),
-            nodes: self.node_mappings.keys().map(|n|*n).collect(),
+            nodes: self.node_mappings.keys().map(|n| *n).collect(),
         };
 
         for connection in self.connections {
-            printable.connections.push(PrintableConnectionGene { innovation: connection.innovation, weight: connection.weight, enabled: connection.enabled });
+            printable.connections.push(PrintableConnectionGene {
+                innovation: connection.innovation,
+                weight: connection.weight,
+                enabled: connection.enabled,
+            });
         }
 
         printable
@@ -432,7 +444,7 @@ pub struct MutationConfig {
     pub random_weight_dist: NormalDistribution, // Standardabweichung s der N(0, s)-Verteilung für den zufälligen Wert der Connection bei einem weight change ohne shift
     pub shift_weight_prob: f64, // Wahrscheinlichkeit, dass weight change das Gewicht shiftet und nicht zufällig neu setzt
     pub shift_weight_dist: NormalDistribution, // Standardabweichung s der N(0, s)-Verteilung für den shift eines weight shifts
-    pub add_node_prob: f64,             // Wahrscheinlichkeit, dass ein neuer Node hinzugefügt wird
+    pub add_node_prob: f64, // Wahrscheinlichkeit, dass ein neuer Node hinzugefügt wird
     pub add_connection_prob: f64, // Wahrscheinlichkeit, dass eine neue Connection zwischen bestehenden Nodes hinzugefügt wird
     pub add_connection_retry_count: u32, // Anzahl der Versuche, zwei passende Nodes für eine neue Connnection auszulosen
     pub new_connection_weight: NewConnectionWeight, // Wie das Gewicht einer neuen Connection festgelegt werden soll.

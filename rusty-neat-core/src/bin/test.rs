@@ -1,7 +1,4 @@
-use rusty_neat_core::{
-    gene_pool::GenePool,
-    population::Population,
-};
+use rusty_neat_core::{gene_pool::GenePool, population::Population};
 
 use rusty_neat_interchange::io::FileType;
 
@@ -12,25 +9,30 @@ fn main() {
     let first = vec![1.0, 0.0, 1.0];
     let second = vec![0.0, 1.0, 1.0];
     let both = vec![1.0, 1.0, 1.0];
-    let mut organism = population.evolve(|organisms| {
-        organisms.iter_mut().for_each(|organism| {
-            let mut score = 0.0;
+    let mut organism = population
+        .evolve(
+            |organisms| {
+                organisms.iter_mut().for_each(|organism| {
+                    let mut score = 0.0;
 
-            let result = organism.evaluate(&none);
-            score += (result[0] - 0.0).powi(2);
+                    let result = organism.evaluate(&none);
+                    score += (result[0] - 0.0).powi(2);
 
-            let result = organism.evaluate(&first);
-            score += (result[0] - 1.0).powi(2);
+                    let result = organism.evaluate(&first);
+                    score += (result[0] - 1.0).powi(2);
 
-            let result = organism.evaluate(&second);
-            score += (result[0] - 1.0).powi(2);
+                    let result = organism.evaluate(&second);
+                    score += (result[0] - 1.0).powi(2);
 
-            let result = organism.evaluate(&both);
-            score += (result[0] - 0.0).powi(2);
+                    let result = organism.evaluate(&both);
+                    score += (result[0] - 0.0).powi(2);
 
-            organism.fitness = Some(4.0 - score);
-        })
-    }, "xor_population").unwrap();
+                    organism.fitness = Some(4.0 - score);
+                })
+            },
+            "xor_population",
+        )
+        .unwrap();
     println!("");
     println!("=========================================================================");
     println!("{:?}", organism);
@@ -41,7 +43,8 @@ fn main() {
     println!("0 xor 1: {:.3}", organism.evaluate(&second)[0]);
     println!("1 xor 1: {:.3}", organism.evaluate(&both)[0]);
 
-    rusty_neat_interchange::organism::write(organism.clone(), "best.json", FileType::PrettyJSON).unwrap();
+    rusty_neat_interchange::organism::write(organism.clone(), "best.json", FileType::PrettyJSON)
+        .unwrap();
 
     /*
     let mut pool = GenePool::new();

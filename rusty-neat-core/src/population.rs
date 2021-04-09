@@ -1,8 +1,12 @@
 use core::f64;
-use std::{cell::RefCell, fs, rc::Rc};
 use serde::{Deserialize, Serialize};
+use std::{cell::RefCell, fs, rc::Rc};
 
-use rusty_neat_interchange::{generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
+use rusty_neat_interchange::{
+    generation::{self, PrintableGeneration},
+    io::FileType,
+    neat_result::{self, PrintableNeatResult},
+};
 
 use crate::{
     config_util::assert_not_negative,
@@ -22,7 +26,8 @@ pub struct Population {
 
 impl Population {
     pub fn new(pool: GenePool, config_path: &str) -> Result<Population, String> {
-        let config: PopulationConfig = serde_json::from_str(&fs::read_to_string(config_path).unwrap()).unwrap();
+        let config: PopulationConfig =
+            serde_json::from_str(&fs::read_to_string(config_path).unwrap()).unwrap();
         if let Err(msg) = config.validate() {
             return Err(msg);
         }
@@ -35,7 +40,11 @@ impl Population {
         Ok(population)
     }
 
-    pub fn evolve<F: Fn(&mut [Organism]) -> ()>(&mut self, fitness_function: F, target_path: &str) -> Result<Organism, String> {
+    pub fn evolve<F: Fn(&mut [Organism]) -> ()>(
+        &mut self,
+        fitness_function: F,
+        target_path: &str,
+    ) -> Result<Organism, String> {
         fs::remove_dir_all(target_path).map_err(|err| err.to_string())?;
         fs::create_dir_all(target_path).map_err(|err| err.to_string())?;
 
@@ -88,12 +97,20 @@ impl Population {
             println!("Speciating...\n");
             self.speciate();
 
-            self.write_generation(generation, &(target_path.to_owned() + "/gen-" + &generation.to_string() + ".bin"), FileType::Bincode);
+            self.write_generation(
+                generation,
+                &(target_path.to_owned() + "/gen-" + &generation.to_string() + ".bin"),
+                FileType::Bincode,
+            );
 
             generation += 1;
         }
 
-        self.write_result(Rc::clone(&best_organism), &(target_path.to_owned() + "/result.bin"), FileType::Bincode);
+        self.write_result(
+            Rc::clone(&best_organism),
+            &(target_path.to_owned() + "/result.bin"),
+            FileType::Bincode,
+        );
 
         Ok((*best_organism).clone())
     }
@@ -169,7 +186,7 @@ impl Population {
     fn write_result(&self, best_organism: Rc<Organism>, path: &str, file_type: FileType) {
         let result = PrintableNeatResult {
             best_genome: best_organism.genome.clone().into(),
-            best_fitness: best_organism.fitness.unwrap()
+            best_fitness: best_organism.fitness.unwrap(),
         };
 
         neat_result::write(result, path, file_type);

@@ -34,23 +34,28 @@ impl GenePool {
         pool.connections.reserve(printable.connections.len());
 
         for node in &printable.nodes {
-            pool.nodes.insert(node.id, Node {
-                id: node.id,
-                node_type: NodeType::from(node.node_type.clone()),
-                depth: node.depth,
-                vertical_placement: node.vertical_placement,
-            });
-        };
+            pool.nodes.insert(
+                node.id,
+                Node {
+                    id: node.id,
+                    node_type: NodeType::from(node.node_type.clone()),
+                    depth: node.depth,
+                    vertical_placement: node.vertical_placement,
+                },
+            );
+        }
 
         for connection in &printable.connections {
             let connection = Rc::from(Connection {
                 from: connection.from,
                 to: connection.to,
-                innovation: connection.innovation
+                innovation: connection.innovation,
             });
 
-            pool.connections.insert(connection.innovation, Rc::clone(&connection));
-            pool.connection_mappings.insert((connection.from, connection.to), Rc::clone(&connection));
+            pool.connections
+                .insert(connection.innovation, Rc::clone(&connection));
+            pool.connection_mappings
+                .insert((connection.from, connection.to), Rc::clone(&connection));
         }
 
         pool
@@ -185,7 +190,7 @@ impl From<PrintableNodeType> for NodeType {
         match printable {
             PrintableNodeType::Input(id) => NodeType::Input(id),
             PrintableNodeType::Hidden => NodeType::Hidden,
-            PrintableNodeType::Output(id) => NodeType::Output(id)
+            PrintableNodeType::Output(id) => NodeType::Output(id),
         }
     }
 }
@@ -195,7 +200,7 @@ impl Into<PrintableNodeType> for NodeType {
         match self {
             NodeType::Input(id) => PrintableNodeType::Input(id),
             NodeType::Hidden => PrintableNodeType::Hidden,
-            NodeType::Output(id) => PrintableNodeType::Output(id)
+            NodeType::Output(id) => PrintableNodeType::Output(id),
         }
     }
 }
@@ -216,6 +221,5 @@ pub struct Connection {
     pub to: usize,
     pub innovation: usize,
 }
-
 
 //////////////////////////////// Serializing /////////////////////////////////////

@@ -3,7 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use rand::prelude::SliceRandom;
 use rusty_neat_interchange::species::PrintableSpecies;
 
-use crate::{config_util, gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig}, organism::Organism};
+use crate::{
+    config_util,
+    gene_pool::GenePool,
+    genome::{DistanceConfig, EvaluationConfig},
+    organism::Organism,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -30,15 +35,32 @@ impl Species {
             config,
         }
     }
-    
-    pub fn from_printable(printable: &PrintableSpecies, pool: Rc<RefCell<GenePool>>, config: Rc<SpeciesConfig>, evaluation_config: Rc<EvaluationConfig>) -> Self {
-        let mut species = Species::new(Rc::from(Organism::from_printable(&printable.representative, Rc::clone(&pool), Rc::clone(&evaluation_config))), Rc::clone(&pool), Rc::clone(&config));
+
+    pub fn from_printable(
+        printable: &PrintableSpecies,
+        pool: Rc<RefCell<GenePool>>,
+        config: Rc<SpeciesConfig>,
+        evaluation_config: Rc<EvaluationConfig>,
+    ) -> Self {
+        let mut species = Species::new(
+            Rc::from(Organism::from_printable(
+                &printable.representative,
+                Rc::clone(&pool),
+                Rc::clone(&evaluation_config),
+            )),
+            Rc::clone(&pool),
+            Rc::clone(&config),
+        );
 
         species.fitness = printable.fitness;
 
         for organism in &printable.organisms {
-            species.organisms.push(Rc::from(Organism::from_printable(organism, Rc::clone(&pool), Rc::clone(&evaluation_config))));
-        };
+            species.organisms.push(Rc::from(Organism::from_printable(
+                organism,
+                Rc::clone(&pool),
+                Rc::clone(&evaluation_config),
+            )));
+        }
 
         species
     }
