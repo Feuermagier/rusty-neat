@@ -35,9 +35,9 @@ impl GenePool {
 
         for node in &printable.nodes {
             pool.nodes.insert(
-                node.id,
+                node.id as usize,
                 Node {
-                    id: node.id,
+                    id: node.id as usize,
                     node_type: NodeType::from(&node.node_type),
                     depth: node.depth,
                     vertical_placement: node.vertical_placement,
@@ -52,9 +52,9 @@ impl GenePool {
 
         for connection in &printable.connections {
             let connection = Rc::from(Connection {
-                from: connection.from,
-                to: connection.to,
-                innovation: connection.innovation,
+                from: connection.from as usize,
+                to: connection.to as usize,
+                innovation: connection.innovation as usize,
             });
 
             pool.connections
@@ -71,12 +71,12 @@ impl GenePool {
         pool.nodes.reserve(input_nodes + output_nodes);
         pool.connections.reserve(input_nodes * output_nodes);
 
-        for _ in 0..input_nodes {
-            pool.create_input_node(1.0 / input_nodes as f64);
+        for i in 0..input_nodes {
+            pool.create_input_node(i as f64 / input_nodes as f64);
         }
 
-        for _ in 0..output_nodes {
-            pool.create_output_node(1.0 / output_nodes as f64);
+        for i in 0..output_nodes {
+            pool.create_output_node(i as f64 / output_nodes as f64);
         }
 
         for i in 0..input_nodes {
@@ -231,7 +231,7 @@ pub struct Node {
 impl From<&PrintableNode> for Node {
     fn from(printable: &PrintableNode) -> Self {
         Self {
-            id: printable.id,
+            id: printable.id as usize,
             node_type: (&printable.node_type).into(),
             depth: printable.depth,
             vertical_placement: printable.vertical_placement,
@@ -242,7 +242,7 @@ impl From<&PrintableNode> for Node {
 impl Into<PrintableNode> for &Node {
     fn into(self) -> PrintableNode {
         PrintableNode {
-            id: self.id,
+            id: self.id as u64,
             node_type: (&self.node_type).into(),
             depth: self.depth,
             vertical_placement: self.vertical_placement,
@@ -261,9 +261,9 @@ pub struct Connection {
 impl From<&PrintableConnection> for Connection {
     fn from(printable: &PrintableConnection) -> Self {
         Self {
-            from: printable.from,
-            to: printable.to,
-            innovation: printable.innovation,
+            from: printable.from as usize,
+            to: printable.to as usize,
+            innovation: printable.innovation as usize,
         }
     }
 }
@@ -271,9 +271,9 @@ impl From<&PrintableConnection> for Connection {
 impl Into<PrintableConnection> for &Connection {
     fn into(self) -> PrintableConnection {
         PrintableConnection {
-            innovation: self.innovation,
-            from: self.from,
-            to: self.to,
+            innovation: self.innovation as u64,
+            from: self.from as u64,
+            to: self.to as u64,
         }
     }
 }

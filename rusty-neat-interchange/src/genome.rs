@@ -6,14 +6,14 @@ use crate::io::{self, FileType};
 #[derive(Serialize, Deserialize)]
 pub struct PrintableGenome {
     pub connections: Vec<PrintableConnectionGene>,
-    pub nodes: Vec<usize>,
+    pub nodes: Vec<u64>,
     pub id: u64,
     pub generation: u32
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct PrintableConnectionGene {
-    pub innovation: usize,
+    pub innovation: u64,
     pub weight: f64,
     pub enabled: bool,
 }

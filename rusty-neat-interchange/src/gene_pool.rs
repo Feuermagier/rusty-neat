@@ -11,7 +11,7 @@ pub struct PrintableGenePool {
 
 #[derive(Serialize, Deserialize)]
 pub struct PrintableNode {
-    pub id: usize,
+    pub id: u64,
     pub node_type: PrintableNodeType,
     pub depth: f64,
     pub vertical_placement: f64,
@@ -19,9 +19,9 @@ pub struct PrintableNode {
 
 #[derive(Serialize, Deserialize)]
 pub struct PrintableConnection {
-    pub innovation: usize,
-    pub from: usize,
-    pub to: usize,
+    pub innovation: u64,
+    pub from: u64,
+    pub to: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

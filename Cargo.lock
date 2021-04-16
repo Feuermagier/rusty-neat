@@ -1455,6 +1455,7 @@ name = "rusty-neat-gui"
 version = "0.1.0"
 dependencies = [
  "druid",
+ "hashbrown",
  "im",
  "rusty-neat-interchange",
  "serde",

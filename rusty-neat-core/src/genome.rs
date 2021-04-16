@@ -64,12 +64,12 @@ impl Genome {
         let mut genome = Genome::new(printable_genome.id, printable_genome.generation);
 
         for node in &printable_genome.nodes {
-            genome.add_node(*node);
+            genome.add_node(*node as usize);
         }
 
         for connection in &printable_genome.connections {
             genome.add_connection(
-                Rc::clone(&pool.connections[connection.innovation]),
+                Rc::clone(&pool.connections[connection.innovation as usize]),
                 connection.weight,
                 connection.enabled,
             );
@@ -392,12 +392,12 @@ impl Into<PrintableGenome> for &Genome {
             id: self.id,
             generation: self.generation,
             connections: Vec::new(),
-            nodes: self.node_mappings.keys().map(|n| *n).collect(),
+            nodes: self.node_mappings.keys().map(|n| *n as u64).collect(),
         };
 
         for connection in &self.connections {
             printable.connections.push(PrintableConnectionGene {
-                innovation: connection.innovation,
+                innovation: connection.innovation as u64,
                 weight: connection.weight,
                 enabled: connection.enabled,
             });

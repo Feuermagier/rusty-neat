@@ -18,7 +18,3 @@ rusty-neat-interchange = { path = "../rusty-neat-interchange" }
 
 [dev-dependencies]
 criterion = "0.3"
-
-[[bench]]
-name = "evaluate_network"
-harness = false

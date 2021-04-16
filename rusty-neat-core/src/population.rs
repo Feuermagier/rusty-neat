@@ -92,13 +92,14 @@ impl Population {
             println!("Speciating...\n");
             self.speciate();
 
-            self.write_generation(generation, target_path, FileType::PrettyJSON)?;
+            self.write_generation(generation, target_path, FileType::Bincode)?;
 
             generation += 1;
         }
 
         write_result(
             Rc::clone(&best_organism),
+            Rc::clone(&self.pool),
             target_path,
             FileType::Bincode,
         );
@@ -210,10 +211,11 @@ fn prepare_target_directory(target_path: &Path) -> Result<(), String> {
     fs::create_dir_all(target_path).map_err(|err| err.to_string())
 }
 
-fn write_result(best_organism: Rc<Organism>, path: &Path, file_type: FileType) {
+fn write_result(best_organism: Rc<Organism>, final_pool: Rc<RefCell<GenePool>>, path: &Path, file_type: FileType) {
     let result = PrintableNeatResult {
         best_genome: (&best_organism.genome).into(),
         best_fitness: best_organism.fitness.unwrap(),
+        final_pool: (&(*final_pool.borrow())).into()
     };
 
     neat_result::write(result, &path.join("result".to_owned() + file_type.to_ext()), file_type).unwrap();
