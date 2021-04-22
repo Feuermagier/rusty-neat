@@ -143,7 +143,7 @@ impl GenePool {
             id,
             node_type: NodeType::Hidden,
             depth: (left_node.depth + right_node.depth) / 2.0,
-            vertical_placement: (left_node.depth + right_node.depth) / 2.0,
+            vertical_placement: (left_node.vertical_placement + right_node.vertical_placement) / 2.0,
         };
         self.nodes.push(node);
         id
