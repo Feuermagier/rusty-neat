@@ -7,20 +7,20 @@ use crate::{commands, model::genome::Genome};
 
 const BACKGROUND_COLOR: &str = "fff8dc";
 
-const NODE_RADIUS: f64 = 25.0;
+const NODE_RADIUS: f64 = 5.0;
 const INPUT_NODE_COLOR: &str = "000000";
 const HIDDEN_NODE_COLOR: &str = "000000";
 const OUTPUT_NODE_COLOR: &str = "000000";
 
-const OFFSET: f64 = 30.0;
+const OFFSET: f64 = 2.0;
 
 const POSITIVE_CONNECTION: &str = "b31537";
 const NEGATIVE_CONNECTION: &str = "1628b5";
 const DISABLED_CONNECTION: &str = "8c8486";
 
-const CONNECTION_SCALE: f64 = 2.0;
-const MIN_CONNECTION_THICKNESS: f64 = 1.0;
-const MAX_CONNECTION_THICKNESS: f64 = 20.0;
+const CONNECTION_SCALE: f64 = 0.2;
+const MIN_CONNECTION_THICKNESS: f64 = 0.1;
+const MAX_CONNECTION_THICKNESS: f64 = 2.0;
 
 const TEXT_COLOR: &str = "ffffff";
 const FONT_SIZE: f64 = 12.0;

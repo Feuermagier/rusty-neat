@@ -82,6 +82,18 @@ impl Genome {
         self.nodes.len()
     }
 
+    pub fn connection_count(&self) -> usize {
+        self.connections.len()
+    }
+
+    pub fn enabled_connection_count(&self) -> usize {
+        self.connections.iter().filter(|connection| connection.enabled).count()
+    }
+
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
     pub fn add_node(&mut self, id: usize) {
         if !self.node_mappings.contains_key(&id) {
             self.nodes.push(NodeGene {
@@ -127,7 +139,7 @@ impl Genome {
 
     pub fn evaluate(
         &mut self,
-        input: &Vec<f64>,
+        input: &[f64],
         pool: &GenePool,
         config: &EvaluationConfig,
     ) -> Vec<f64> {
@@ -153,7 +165,7 @@ impl Genome {
     fn evaluate_node(
         &mut self,
         node_id: usize,
-        input: &Vec<f64>,
+        input: &[f64],
         config: &EvaluationConfig,
     ) -> f64 {
         if self.nodes[node_id].evaluation.iteration == self.next_iteration {
@@ -300,7 +312,11 @@ impl Genome {
             if let Some(connection) = pool.create_connection(a.node_id, b.node_id) {
                 // Passende Nodes gefunden
                 if let Some(index) = self.connection_mappings.get(&connection.innovation) {
-                    self.connections[*index].enabled = true;
+                    if !self.connections[*index].enabled {
+                        self.connections[*index].enabled = true;
+                    } else {
+                        continue;
+                    }
                 } else {
                     self.add_new_connection(connection, &config.new_connection_weight);
                 }
@@ -308,7 +324,11 @@ impl Genome {
             } else if let Some(connection) = pool.create_connection(b.node_id, a.node_id) {
                 // Passende Nodes gefunden
                 if let Some(index) = self.connection_mappings.get(&connection.innovation) {
-                    self.connections[*index].enabled = true;
+                    if !self.connections[*index].enabled {
+                        self.connections[*index].enabled = true;
+                    } else {
+                        continue;
+                    }
                 } else {
                     self.add_new_connection(connection, &config.new_connection_weight);
                 }

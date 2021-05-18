@@ -83,10 +83,14 @@ impl Population {
                     .unwrap(),
             );
             println!(
-                "=> Best fitness: {:.10} using {} nodes",
+                "=> Best genome {}, fitness {:.10} using {} nodes and {} connections ({} enabled)",
+                best_organism.genome.id(),
                 best_organism.fitness.unwrap(),
-                best_organism.genome.node_count()
+                best_organism.genome.node_count(),
+                best_organism.genome.connection_count(),
+                best_organism.genome.enabled_connection_count()
             );
+            println!("==> Gene Pool: {} nodes, {} connections", self.pool.borrow().nodes.len(), self.pool.borrow().connections.len());
 
             // Die Organismen in Spezies einteilen
             println!("Speciating...\n");
@@ -151,6 +155,7 @@ impl Population {
                 }
             }
             if !found_species {
+                println!("Creating a new species");
                 let mut species = Species::new(
                     Rc::clone(&organism),
                     Rc::clone(&self.pool),

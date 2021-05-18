@@ -43,7 +43,7 @@ impl Organism {
         }
     }
 
-    pub fn evaluate(&mut self, input: &Vec<f64>) -> Vec<f64> {
+    pub fn evaluate(&mut self, input: &[f64]) -> Vec<f64> {
         self.genome
             .evaluate(input, &self.pool.borrow(), self.evaluation_config.as_ref())
     }
