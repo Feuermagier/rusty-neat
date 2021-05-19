@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use rand::prelude::SliceRandom;
 use rusty_neat_interchange::species::PrintableSpecies;
@@ -18,15 +18,15 @@ pub(crate) struct Species {
     pub(crate) id: usize,
     representative: Rc<Organism>,
     fitness: Option<f64>,
-    pool: Rc<RefCell<GenePool>>,
-    config: Rc<SpeciesConfig>,
+    pool: Arc<RwLock<GenePool>>,
+    config: Arc<SpeciesConfig>,
 }
 
 impl Species {
     pub fn new(
         representative: Rc<Organism>,
-        pool: Rc<RefCell<GenePool>>,
-        config: Rc<SpeciesConfig>,
+        pool: Arc<RwLock<GenePool>>,
+        config: Arc<SpeciesConfig>,
         id: usize
     ) -> Species {
         Species {
@@ -41,18 +41,18 @@ impl Species {
 
     pub fn from_printable(
         printable: &PrintableSpecies,
-        pool: Rc<RefCell<GenePool>>,
-        config: Rc<SpeciesConfig>,
-        evaluation_config: Rc<EvaluationConfig>,
+        pool: Arc<RwLock<GenePool>>,
+        config: Arc<SpeciesConfig>,
+        evaluation_config: Arc<EvaluationConfig>,
     ) -> Self {
         let mut species = Species::new(
             Rc::from(Organism::from_printable(
                 &printable.representative,
-                Rc::clone(&pool),
-                Rc::clone(&evaluation_config),
+                Arc::clone(&pool),
+                Arc::clone(&evaluation_config),
             )),
-            Rc::clone(&pool),
-            Rc::clone(&config),
+            Arc::clone(&pool),
+            Arc::clone(&config),
             printable.id
         );
 
@@ -61,8 +61,8 @@ impl Species {
         for organism in &printable.organisms {
             species.organisms.push(Rc::from(Organism::from_printable(
                 organism,
-                Rc::clone(&pool),
-                Rc::clone(&evaluation_config),
+                Arc::clone(&pool),
+                Arc::clone(&evaluation_config),
             )));
         }
 
@@ -82,7 +82,7 @@ impl Species {
         self.fitness = None;
     }
 
-    pub fn matches(&self, organism: Rc<Organism>, config: Rc<DistanceConfig>) -> bool {
+    pub fn matches(&self, organism: Rc<Organism>, config: Arc<DistanceConfig>) -> bool {
         self.representative.distance(&organism, config) <= self.config.species_distance_tolerance
     }
 

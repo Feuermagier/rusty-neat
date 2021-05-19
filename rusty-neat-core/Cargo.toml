@@ -14,7 +14,8 @@ rand = "0.8.0"
 rand_distr = "0.4.0"
 itertools = "0.10.0"
 rusty-neat-interchange = { path = "../rusty-neat-interchange" }
-
+rayon = "1.5"
+crossbeam = "0.8"
 
 [dev-dependencies]
 criterion = "0.3"

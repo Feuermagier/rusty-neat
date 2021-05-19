@@ -1,6 +1,6 @@
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::{cmp::max, collections::BTreeMap, rc::Rc};
+use std::{cmp::max, collections::BTreeMap, rc::Rc, sync::Arc};
 
 use crate::{
     activation::Activation,
@@ -69,7 +69,7 @@ impl Genome {
 
         for connection in &printable_genome.connections {
             genome.add_connection(
-                Rc::clone(&pool.connections[connection.innovation as usize]),
+                pool.connections[connection.innovation as usize],
                 connection.weight,
                 connection.enabled,
             );
@@ -110,7 +110,7 @@ impl Genome {
 
     pub fn add_new_connection(
         &mut self,
-        connection: Rc<Connection>,
+        connection: Connection,
         weight_strategy: &NewConnectionWeight,
     ) {
         let weight = NewConnectionWeight::sample_weight(weight_strategy);
@@ -118,7 +118,7 @@ impl Genome {
     }
 
     // Falls die Enden der Connection noch nicht vorhanden sind, werden diese hinzugefügt
-    fn add_connection(&mut self, connection: Rc<Connection>, weight: f64, enabled: bool) {
+    fn add_connection(&mut self, connection: Connection, weight: f64, enabled: bool) {
         self.add_node(connection.from);
         self.add_node(connection.to);
 
@@ -360,7 +360,7 @@ impl Genome {
                     let my_gene =
                         self.get_connection_from_innovation(*my_connections.next().unwrap());
                     offspring.add_connection(
-                        Rc::clone(&pool.connections[my_gene.innovation]),
+                        pool.connections[my_gene.innovation],
                         my_gene.weight,
                         my_gene.enabled,
                     );
@@ -368,7 +368,7 @@ impl Genome {
                     let other_gene =
                         other.get_connection_from_innovation(*other_connections.next().unwrap());
                     offspring.add_connection(
-                        Rc::clone(&pool.connections[other_gene.innovation]),
+                        pool.connections[other_gene.innovation],
                         other_gene.weight,
                         other_gene.enabled,
                     );
@@ -381,7 +381,7 @@ impl Genome {
             for innovation in my_connections {
                 let my_gene = self.get_connection_from_innovation(*innovation);
                 offspring.add_connection(
-                    Rc::clone(&pool.connections[my_gene.innovation]),
+                    pool.connections[my_gene.innovation],
                     my_gene.weight,
                     my_gene.enabled,
                 );
@@ -390,7 +390,7 @@ impl Genome {
             for innovation in other_connections {
                 let other_gene = other.get_connection_from_innovation(*innovation);
                 offspring.add_connection(
-                    Rc::clone(&pool.connections[other_gene.innovation]),
+                    pool.connections[other_gene.innovation],
                     other_gene.weight,
                     other_gene.enabled,
                 );
@@ -591,13 +591,13 @@ fn crossover_similar(
 
     if better_gene.enabled == worse_gene.enabled {
         offspring.add_connection(
-            Rc::clone(&pool.connections[better_gene.innovation]),
+            pool.connections[better_gene.innovation],
             weight,
             better_gene.enabled,
         );
     } else {
         offspring.add_connection(
-            Rc::clone(&pool.connections[better_gene.innovation]),
+            pool.connections[better_gene.innovation],
             weight,
             rand::thread_rng().gen_bool(1.0 - config.disable_connection_prob),
         );

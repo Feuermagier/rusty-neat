@@ -1,18 +1,18 @@
 use core::f64;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fs, path::Path, rc::Rc};
+use std::{cell::RefCell, fs, path::Path, rc::Rc, sync::{Arc, Mutex, RwLock}};
 
 use rusty_neat_interchange::{generation::{self, PrintableGeneration}, io::FileType, neat_result::{self, PrintableNeatResult}};
 
 use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig, GenomeIdGenerator, NewConnectionWeight}, organism::Organism, reproduction::{self, ReproductionConfig}, species::{Species, SpeciesConfig}};
 
 pub struct Population {
-    config: Rc<PopulationConfig>,
-    pool: Rc<RefCell<GenePool>>,
+    config: Arc<PopulationConfig>,
+    pool: Arc<RwLock<GenePool>>,
     pub(crate) organisms: Vec<Rc<Organism>>,
     pub(crate) species: Vec<Species>,
     next_species_id: usize,
-    genome_id_generator: Rc<RefCell<GenomeIdGenerator>>
+    genome_id_generator: Arc<Mutex<GenomeIdGenerator>>
 }
 
 impl Population {
@@ -23,12 +23,12 @@ impl Population {
             return Err(msg);
         }
         let population = Population {
-            pool: Rc::from(RefCell::from(pool)),
+            pool: Arc::from(RwLock::from(pool)),
             organisms: Vec::with_capacity(1),
-            config: Rc::from(config),
+            config: Arc::from(config),
             species: Vec::with_capacity(1),
             next_species_id: 0,
-            genome_id_generator: Rc::from(RefCell::from(GenomeIdGenerator::new()))
+            genome_id_generator: Arc::from(Mutex::from(GenomeIdGenerator::new()))
         };
         Ok(population)
     }
@@ -60,10 +60,10 @@ impl Population {
             println!("Reproducing...");
             let mut new_organisms = reproduction::reproduce(
                 self,
-                Rc::clone(&self.pool),
-                Rc::clone(&self.config.reproduction),
-                Rc::clone(&self.config.evaluation),
-                Rc::clone(&self.genome_id_generator),
+                Arc::clone(&self.pool),
+                Arc::clone(&self.config.reproduction),
+                Arc::clone(&self.config.evaluation),
+                Arc::clone(&self.genome_id_generator),
                 generation
             );
 
@@ -90,7 +90,7 @@ impl Population {
                 best_organism.genome.connection_count(),
                 best_organism.genome.enabled_connection_count()
             );
-            println!("==> Gene Pool: {} nodes, {} connections", self.pool.borrow().nodes.len(), self.pool.borrow().connections.len());
+            println!("==> Gene Pool: {} nodes, {} connections", self.pool.read().unwrap().nodes.len(), self.pool.read().unwrap().connections.len());
 
             // Die Organismen in Spezies einteilen
             println!("Speciating...\n");
@@ -103,7 +103,7 @@ impl Population {
 
         write_result(
             Rc::clone(&best_organism),
-            Rc::clone(&self.pool),
+            &self.pool.read().unwrap(),
             target_path,
             FileType::Bincode,
         );
@@ -116,12 +116,13 @@ impl Population {
             Vec::with_capacity(self.config.reproduction.organism_count);
 
         for _ in 0..self.config.reproduction.organism_count {
+            let mut id_gen = self.genome_id_generator.lock().unwrap();
             organisms.push(Organism::new(
                 self.pool
-                    .borrow_mut()
-                    .new_genome(&self.config.initial_organism_weight, self.genome_id_generator.borrow_mut().next_id(), 0),
-                Rc::clone(&self.pool),
-                Rc::clone(&self.config.evaluation),
+                    .read().unwrap()
+                    .new_genome(&self.config.initial_organism_weight, id_gen.next_id(), 0),
+                    Arc::clone(&self.pool),
+                    Arc::clone(&self.config.evaluation),
             ));
         }
 
@@ -138,8 +139,8 @@ impl Population {
         for species in &self.species {
             new_species.push(Species::new(
                 species.select_new_representative(),
-                Rc::clone(&self.pool),
-                Rc::clone(&self.config.species),
+                Arc::clone(&self.pool),
+                Arc::clone(&self.config.species),
                 species.id
             ));
         }
@@ -148,7 +149,7 @@ impl Population {
         for organism in &self.organisms {
             let mut found_species = false;
             for species in &mut new_species {
-                if species.matches(Rc::clone(organism), Rc::clone(&self.config.distance)) {
+                if species.matches(Rc::clone(organism), Arc::clone(&self.config.distance)) {
                     species.add_organism(Rc::clone(organism));
                     found_species = true;
                     break;
@@ -158,8 +159,8 @@ impl Population {
                 println!("Creating a new species");
                 let mut species = Species::new(
                     Rc::clone(&organism),
-                    Rc::clone(&self.pool),
-                    Rc::clone(&self.config.species),
+                    Arc::clone(&self.pool),
+                    Arc::clone(&self.config.species),
                     self.next_species_id
                 );
                 self.next_species_id += 1;
@@ -178,7 +179,7 @@ impl Population {
         let generation = PrintableGeneration {
             generation: generation_number,
             species: self.species.iter().map(|s| s.into()).collect(),
-            pool: (&(*self.pool.borrow())).into()
+            pool: (&(*self.pool.read().unwrap())).into()
         };
 
         generation::write(generation, &path.join("gen-".to_owned() + &generation_number.to_string() + file_type.to_ext()), file_type)
@@ -190,10 +191,10 @@ pub struct PopulationConfig {
     pub target_fitness: f64, // Wird diese Fitness erreicht oder überschritten wird abgebrochen
     pub max_generations: u32, // So viele Generationen werden höchstens durchlaufen (0 entspricht unbegrenzt)
     pub initial_organism_weight: NewConnectionWeight, // So wird das Gewicht der Connections in den initialen Genomen bestimmt
-    pub distance: Rc<DistanceConfig>,
-    pub species: Rc<SpeciesConfig>,
-    pub evaluation: Rc<EvaluationConfig>,
-    pub reproduction: Rc<ReproductionConfig>,
+    pub distance: Arc<DistanceConfig>,
+    pub species: Arc<SpeciesConfig>,
+    pub evaluation: Arc<EvaluationConfig>,
+    pub reproduction: Arc<ReproductionConfig>,
 }
 
 impl PopulationConfig {
@@ -216,11 +217,11 @@ fn prepare_target_directory(target_path: &Path) -> Result<(), String> {
     fs::create_dir_all(target_path).map_err(|err| err.to_string())
 }
 
-fn write_result(best_organism: Rc<Organism>, final_pool: Rc<RefCell<GenePool>>, path: &Path, file_type: FileType) {
+fn write_result(best_organism: Rc<Organism>, final_pool: &GenePool, path: &Path, file_type: FileType) {
     let result = PrintableNeatResult {
         best_genome: (&best_organism.genome).into(),
         best_fitness: best_organism.fitness.unwrap(),
-        final_pool: (&(*final_pool.borrow())).into()
+        final_pool: final_pool.into()
     };
 
     neat_result::write(result, &path.join("result".to_owned() + file_type.to_ext()), file_type).unwrap();

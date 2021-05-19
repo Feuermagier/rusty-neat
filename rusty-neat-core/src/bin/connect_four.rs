@@ -1,8 +1,12 @@
-use std::{fmt::{Display, write}, path::Path};
+use std::{
+    borrow::BorrowMut,
+    fmt::{write, Display},
+    path::Path,
+};
 
 use rand::Rng;
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rusty_neat_core::{gene_pool::GenePool, organism::Organism, population::Population};
-
 
 const FIELD_WIDTH: usize = 7;
 const FIELD_HEIGHT: usize = 6;
@@ -13,44 +17,48 @@ pub fn main() {
     neat();
 }
 
-
 fn neat() {
     let pool = GenePool::new_dense(FIELD_WIDTH * FIELD_HEIGHT, FIELD_WIDTH);
     let mut population = Population::new(pool, Path::new("connect_four.json")).unwrap();
 
-    let best_organism = population.evolve(|organisms| {
-        let mut groups = std::iter::repeat(vec![]).take(GROUP_COUNT).collect::<Vec<_>>();
-        for i in 0..organisms.len() {
-            groups[(&mut rand::thread_rng()).gen_range(0..GROUP_COUNT)].push(i);
-            organisms[i].fitness = Some(0.0);
-        }
+    let best_organism = population.evolve(
+        |organisms| {
+            for organism in organisms.iter_mut() {
+                organism.fitness = Some(0.0);
+            }
 
-        for group in &mut groups {
-            println!("Evaluating group of size {}", group.len());
-            for i in 0..group.len() - 1 {
-                for j in i + 1..group.len() {
-                    let i = group[i];
-                    let j = group[j];
-                    let result = play(organisms, i, j);
-                    match result {
-                        GameResult::FIRST_PLAYER_WON => {
-                            organisms[i].fitness = Some(organisms[i].fitness.unwrap() + 1.0);
-                        },
-                        GameResult::SECOND_PLAYER_WON => {
-                            organisms[j].fitness = Some(organisms[j].fitness.unwrap() + 1.0);
-                        },
-                        GameResult::TIE => {
-                            organisms[i].fitness = Some(organisms[i].fitness.unwrap() + 0.5);
-                            organisms[j].fitness = Some(organisms[j].fitness.unwrap() + 0.5);
+            let groups = create_chunks(
+                organisms,
+                GROUP_COUNT,
+                organisms.len() / GROUP_COUNT,
+                |_| (&mut rand::thread_rng()).gen_range(0..GROUP_COUNT),
+            );
+
+            groups.par_iter().for_each(|group| {
+                println!("Evaluating group of size {}", group.len());
+                for i in 0..group.len() {
+                    for j in i + 1..group.len() {
+                        let result = play(group.get(i), group.get(j));
+                        match result {
+                            GameResult::FIRST_PLAYER_WON => {
+                                group.get(i).fitness = Some(group.get(i).fitness.unwrap() + 1.0);
+                            }
+                            GameResult::SECOND_PLAYER_WON => {
+                                group.get(j).fitness = Some(group.get(j).fitness.unwrap() + 1.0);
+                            }
+                            GameResult::TIE => {
+                                group.get(i).fitness = Some(group.get(i).fitness.unwrap() + 0.5);
+                                group.get(j).fitness = Some(group.get(j).fitness.unwrap() + 0.5);
+                            }
                         }
                     }
+                    group.get(i).fitness =
+                        Some(group.get(i).fitness.unwrap() / ((group.len() - 1) as f64));
                 }
-                organisms[group[i]].fitness = Some(organisms[group[i]].fitness.unwrap() / ((group.len() - 1) as f64));
-            }
-            organisms[group[group.len() - 1]].fitness = Some(organisms[group[group.len() - 1]].fitness.unwrap() / ((group.len() - 1) as f64))
-        }
-
-    }, Path::new("connect_four_out"));
+            });
+        },
+        Path::new("connect_four_out"),
+    );
 
     println!("==========================================");
     println!("{:?}", best_organism);
@@ -69,7 +77,6 @@ fn interactive() {
 
         let column = input.parse().unwrap();
         if board.place_in_column(column) {
-
             if board.check_win(column) {
                 break;
             }
@@ -85,24 +92,22 @@ fn interactive() {
     }
 }
 
-fn play(organisms: &mut [Organism], first: usize, second: usize) -> GameResult {
+fn play(first: &mut Organism, second: &mut Organism) -> GameResult {
     let mut board = Board::new();
 
     let mut current_turn = 0;
     while current_turn < FIELD_WIDTH * FIELD_HEIGHT {
-
-
         let mut max_prob = 0.0;
         let mut max_index = 0;
         if board.next_player == 1.0 {
-            for (i, prob) in organisms[first].evaluate(&board.board).iter().enumerate() {
+            for (i, prob) in first.evaluate(&board.board).iter().enumerate() {
                 if *prob > max_prob {
                     max_prob = *prob;
                     max_index = i;
                 }
             }
         } else {
-            for (i, prob) in organisms[second].evaluate(&board.board).iter().enumerate() {
+            for (i, prob) in second.evaluate(&board.board).iter().enumerate() {
                 if *prob > max_prob {
                     max_prob = *prob;
                     max_index = i;
@@ -112,7 +117,6 @@ fn play(organisms: &mut [Organism], first: usize, second: usize) -> GameResult {
 
         let column = max_index;
         if board.place_in_column(column) {
-
             if board.check_win(column) {
                 break;
             }
@@ -141,13 +145,13 @@ fn play(organisms: &mut [Organism], first: usize, second: usize) -> GameResult {
 enum GameResult {
     FIRST_PLAYER_WON,
     SECOND_PLAYER_WON,
-    TIE
+    TIE,
 }
 
 struct Board {
     pub board: [f64; (FIELD_HEIGHT + 2) * (FIELD_WIDTH + 2)],
     pub heights: [usize; FIELD_WIDTH],
-    pub next_player: f64
+    pub next_player: f64,
 }
 
 impl Board {
@@ -155,7 +159,7 @@ impl Board {
         Board {
             board: [0.0; (FIELD_HEIGHT + 2) * (FIELD_WIDTH + 2)],
             heights: [1; FIELD_WIDTH],
-            next_player: 1.0
+            next_player: 1.0,
         }
     }
 
@@ -272,4 +276,48 @@ impl Display for Board {
         }
         Ok(())
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct IndexedChunk<'a, T> {
+    values: &'a [T],
+    indices: Vec<usize>,
+}
+
+impl<'a, T> IndexedChunk<'a, T> {
+    pub fn get(&self, index: usize) -> &mut T {
+        let value = &self.values[self.indices[index]];
+        unsafe { (value as *const T as *mut T).as_mut().unwrap() }
+    }
+
+    pub fn len(&self) -> usize {
+        self.indices.len()
+    }
+}
+
+fn create_chunks<'a, T, F: Fn(&T) -> usize>(
+    values: &'a mut [T],
+    chunk_count: usize,
+    expected_chunk_size: usize,
+    assignment: F,
+) -> Vec<IndexedChunk<'a, T>> {
+    let values = &(*values);
+    let mut indices: Vec<Vec<usize>> = std::iter::repeat(Vec::with_capacity(expected_chunk_size))
+        .take(chunk_count)
+        .collect();
+
+    for (i, value) in values.iter().enumerate() {
+        indices[assignment(value)].push(i);
+    }
+
+    let mut chunks = Vec::with_capacity(chunk_count);
+    for index in indices {
+        chunks.push(IndexedChunk {
+            values,
+            indices: index,
+        });
+    }
+
+    chunks
 }
