@@ -1,5 +1,4 @@
-
 pub enum Details {
-  All,
-  Best
+    All,
+    Best,
 }

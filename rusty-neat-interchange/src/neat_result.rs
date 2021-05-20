@@ -1,13 +1,17 @@
 use std::path::Path;
 
-use crate::{gene_pool::PrintableGenePool, genome::PrintableGenome, io::{self, FileType}};
+use crate::{
+    gene_pool::PrintableGenePool,
+    genome::PrintableGenome,
+    io::{self, FileType},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct PrintableNeatResult {
     pub best_genome: PrintableGenome,
     pub best_fitness: f64,
-    pub final_pool: PrintableGenePool
+    pub final_pool: PrintableGenePool,
 }
 
 pub fn write<T: Into<PrintableNeatResult>>(

@@ -12,7 +12,7 @@ pub struct PrintableSpecies {
     pub representative: PrintableOrganism,
     pub organisms: Vec<PrintableOrganism>,
     pub fitness: Option<f64>,
-    pub id: usize
+    pub id: usize,
 }
 
 pub fn write<T: Into<PrintableSpecies>>(

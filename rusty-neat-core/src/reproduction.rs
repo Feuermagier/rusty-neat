@@ -1,18 +1,31 @@
-use std::{cell::RefCell, cmp::{max, min}, rc::Rc, sync::{Arc, Mutex, RwLock}};
+use std::{
+    cell::RefCell,
+    cmp::{max, min},
+    rc::Rc,
+    sync::{Arc, Mutex, RwLock},
+};
 
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
+};
 use serde::{Deserialize, Serialize};
 
 use rand::prelude::SliceRandom;
 
-use crate::{config_util::assert_not_negative, gene_pool::GenePool, genome::{CrossoverConfig, EvaluationConfig, GenomeIdGenerator, MutationConfig}, organism::Organism, population::Population, species::Species};
+use crate::{
+    config_util::assert_not_negative,
+    gene_pool::GenePool,
+    genome::{CrossoverConfig, EvaluationConfig, GenomeIdGenerator, MutationConfig},
+    organism::Organism,
+    population::Population,
+    species::Species,
+};
 
 pub(crate) fn reproduce(
     population: &mut Population,
-    pool: Arc<RwLock<GenePool>>,
     config: Arc<ReproductionConfig>,
     evaluation_config: Arc<EvaluationConfig>,
-    genome_id_generator: Arc<Mutex<GenomeIdGenerator>>,
-    generation: u32
+    generation: u32,
 ) -> Vec<Organism> {
     let mut new_population: Vec<Organism> = Vec::with_capacity(config.organism_count);
 
@@ -32,12 +45,12 @@ pub(crate) fn reproduce(
         reproduce_species(
             species,
             target_count,
-            Arc::clone(&pool),
+            &mut population.pool,
             config.as_ref(),
             Arc::clone(&evaluation_config),
             &mut new_population,
-            genome_id_generator.as_ref(),
-            generation
+            &mut population.genome_id_generator,
+            generation,
         )
     }
 
@@ -47,12 +60,12 @@ pub(crate) fn reproduce(
 fn reproduce_species(
     species: &mut Species,
     target_count: usize,
-    pool: Arc<RwLock<GenePool>>,
+    pool: &mut GenePool,
     config: &ReproductionConfig,
     evaluation_config: Arc<EvaluationConfig>,
     new_population: &mut Vec<Organism>,
-    genome_id_generator: &Mutex<GenomeIdGenerator>,
-    generation: u32
+    genome_id_generator: &mut GenomeIdGenerator,
+    generation: u32,
 ) {
     // Organismen innerhalb der Spezies sortieren
     species.organisms.sort_unstable();
@@ -83,7 +96,14 @@ fn reproduce_species(
     for _ in 0..mutation_count {
         let parent = select_parent(species, &config.species_strategy, limit);
         let mut offspring = (*parent).clone();
-        mutate_organism(&mut offspring, &pool, target_count, config, genome_id_generator.lock().unwrap().next_id(), generation);
+        mutate_organism(
+            &mut offspring,
+            pool,
+            target_count,
+            config,
+            genome_id_generator.next_id(),
+            generation,
+        );
         offspring.fitness = None;
         new_population.push(offspring);
     }
@@ -94,14 +114,24 @@ fn reproduce_species(
         let second_parent = select_parent(species, &config.species_strategy, limit);
 
         let mut offspring = Organism::new(
-            first_parent
-                .genome
-                .crossover(&second_parent.genome, &pool.read().unwrap(), &config.crossover, genome_id_generator.lock().unwrap().next_id(), generation),
-            Arc::clone(&pool),
+            first_parent.genome.crossover(
+                &second_parent.genome,
+                pool,
+                &config.crossover,
+                genome_id_generator.next_id(),
+                generation,
+            ),
             Arc::clone(&evaluation_config),
         );
 
-        mutate_organism(&mut offspring, &pool, target_count, config, genome_id_generator.lock().unwrap().next_id(), generation);
+        mutate_organism(
+            &mut offspring,
+            pool,
+            target_count,
+            config,
+            genome_id_generator.next_id(),
+            generation,
+        );
         new_population.push(offspring);
     }
 }
@@ -110,9 +140,9 @@ fn select_parent(
     species: &Species,
     strategy: &SpeciesReproductionStrategy,
     limit: usize,
-) -> Rc<Organism> {
+) -> Arc<Organism> {
     match strategy {
-        SpeciesReproductionStrategy::Random => Rc::clone(
+        SpeciesReproductionStrategy::Random => Arc::clone(
             species.organisms[limit..]
                 .choose(&mut rand::thread_rng())
                 .unwrap(),
@@ -123,20 +153,20 @@ fn select_parent(
 
 fn mutate_organism(
     organism: &mut Organism,
-    pool: &Arc<RwLock<GenePool>>,
+    pool: &mut GenePool,
     species_size: usize,
     config: &ReproductionConfig,
     new_id: u64,
-    generation: u32
+    generation: u32,
 ) {
     if species_size >= config.large_species_size {
         organism
             .genome
-            .mutate(&mut pool.write().unwrap(), &config.large_intensity_config, new_id, generation);
+            .mutate(pool, &config.large_intensity_config, new_id, generation);
     } else {
         organism
             .genome
-            .mutate(&mut pool.write().unwrap(), &config.large_intensity_config, new_id, generation);
+            .mutate(pool, &config.large_intensity_config, new_id, generation);
     }
 }
 

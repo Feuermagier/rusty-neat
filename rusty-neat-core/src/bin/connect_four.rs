@@ -18,7 +18,7 @@ pub fn main() {
 }
 
 fn neat() {
-    let pool = GenePool::new_dense(FIELD_WIDTH * FIELD_HEIGHT, FIELD_WIDTH);
+    let pool = GenePool::new_dense((FIELD_WIDTH + 2) * (FIELD_HEIGHT + 2), FIELD_WIDTH);
     let mut population = Population::new(pool, Path::new("connect_four.json")).unwrap();
 
     let best_organism = population.evolve(

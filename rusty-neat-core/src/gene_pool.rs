@@ -1,7 +1,9 @@
 use std::{rc::Rc, sync::Arc, usize};
 
 use hashbrown::HashMap;
-use rusty_neat_interchange::gene_pool::{PrintableConnection, PrintableGenePool, PrintableNode, PrintableNodeType};
+use rusty_neat_interchange::gene_pool::{
+    PrintableConnection, PrintableGenePool, PrintableNode, PrintableNodeType,
+};
 
 use crate::genome::{Genome, NewConnectionWeight};
 
@@ -10,7 +12,7 @@ const OUTPUT_NODE_DEPTH: f64 = 1.0;
 
 #[derive(Debug)]
 pub struct GenePool {
-    pub nodes: Vec<Node>, // Liste aller Nodes über alle Genomes hinweg
+    pub nodes: Vec<Node>,             // Liste aller Nodes über alle Genomes hinweg
     pub connections: Vec<Connection>, // Liste aller Connections über alle Genomes hinweg (Index = innovation der Connection)
     pub connection_mappings: HashMap<(usize, usize), Connection>, // (from, to) -> innovation
     pub input_count: usize,
@@ -57,8 +59,7 @@ impl GenePool {
                 innovation: connection.innovation as usize,
             };
 
-            pool.connections
-                .insert(connection.innovation, connection);
+            pool.connections.insert(connection.innovation, connection);
             pool.connection_mappings
                 .insert((connection.from, connection.to), connection);
         }
@@ -143,7 +144,8 @@ impl GenePool {
             id,
             node_type: NodeType::Hidden,
             depth: (left_node.depth + right_node.depth) / 2.0,
-            vertical_placement: (left_node.vertical_placement + right_node.vertical_placement) / 2.0,
+            vertical_placement: (left_node.vertical_placement + right_node.vertical_placement)
+                / 2.0,
         };
         self.nodes.push(node);
         id
@@ -162,22 +164,26 @@ impl GenePool {
                 innovation: self.connections.len(),
             };
             self.connections.push(connection);
-            self.connection_mappings
-                .insert((from, to), connection);
+            self.connection_mappings.insert((from, to), connection);
             Some(connection)
         }
     }
 
-    pub fn new_genome(&self, weight_strategy: &NewConnectionWeight, id: u64, generation: u32) -> Genome {
-        let mut genome = Genome::new(id, generation);
+    pub fn new_genome(
+        &self,
+        weight_strategy: &NewConnectionWeight,
+        id: u64,
+        generation: u32,
+    ) -> Genome {
+        let mut genome = Genome::new(id, generation, self.input_count, self.output_count);
 
-        for node in &self.nodes {
+        for node in self.nodes.iter().skip(self.input_count + self.output_count) {
             genome.add_node(node.id);
         }
 
-        self.connections.iter().for_each(|connection| {
-            genome.add_new_connection(*connection, weight_strategy)
-        });
+        self.connections
+            .iter()
+            .for_each(|connection| genome.add_new_connection(*connection, weight_strategy));
 
         genome
     }
@@ -186,8 +192,8 @@ impl GenePool {
 impl Into<PrintableGenePool> for &GenePool {
     fn into(self) -> PrintableGenePool {
         PrintableGenePool {
-            nodes: self.nodes.iter().map(|n|n.into()).collect(),
-            connections: self.connections.iter().map(|c|c.into()).collect(),
+            nodes: self.nodes.iter().map(|n| n.into()).collect(),
+            connections: self.connections.iter().map(|c| c.into()).collect(),
         }
     }
 }

@@ -1,6 +1,12 @@
 use core::fmt;
 use serde::{Deserialize, Serialize};
-use std::{cmp::max, collections::BTreeMap, rc::Rc, sync::Arc};
+use std::{
+    cmp::max,
+    collections::BTreeMap,
+    rc::Rc,
+    sync::{atomic::AtomicU64, Arc},
+    usize,
+};
 
 use crate::{
     activation::Activation,
@@ -13,44 +19,60 @@ use rand_distr::Distribution;
 use rusty_neat_interchange::genome::{PrintableConnectionGene, PrintableGenome};
 
 pub(crate) struct GenomeIdGenerator {
-    next_id: u64
+    next_id: u64,
 }
 
 impl GenomeIdGenerator {
     pub(crate) fn new() -> Self {
-        GenomeIdGenerator{
-            next_id: 0
-        }
+        GenomeIdGenerator { next_id: 0 }
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {
         self.next_id += 1;
-        self.next_id - 1
+        self.next_id
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Genome {
     id: u64,
+    input_node_count: usize,
+    output_node_count: usize,
     connections: Vec<ConnectionGene>,
     connection_mappings: BTreeMap<usize, usize>, // innovation -> Index in connections
-    nodes: Vec<NodeGene>,
+    nodes: Vec<NodeGene>, // Die ersten Nodes sind die Input Nodes, darauf folgen die Output Nodes, und dann die Hidden nodes
     node_mappings: HashMap<usize, usize>, // node_id -> gene_id
+    input_nodes: Vec<usize>, // Index der Inputs in nodes (in der gleichen Reihenfolge wie bei evaluate)
+    output_nodes: Vec<usize>, // Index der Outputs in nodes (in der gleichen Reihenfolge wie bei evaluate)
     next_iteration: u64,
-    generation: u32     // Die Generation, in der das Genom erstellt wurde
+    generation: u32, // Die Generation, in der das Genom erstellt wurde
 }
 
 impl Genome {
-    pub fn new(id: u64, generation: u32) -> Genome {
-        Genome {
+    pub fn new(
+        id: u64,
+        generation: u32,
+        input_node_count: usize,
+        output_node_count: usize,
+    ) -> Genome {
+        let mut genome = Genome {
             id,
+            input_node_count,
+            output_node_count,
             connections: Vec::new(),
             connection_mappings: BTreeMap::new(),
             nodes: Vec::new(),
             node_mappings: HashMap::new(),
             next_iteration: 1,
-            generation
+            input_nodes: Vec::new(),
+            output_nodes: Vec::new(),
+            generation,
+        };
+        for i in 0..input_node_count + output_node_count {
+            genome.add_node(i);
         }
+
+        genome
     }
 
     pub fn from_genome(genome: &Genome, id: u64, generation: u32) -> Genome {
@@ -60,6 +82,7 @@ impl Genome {
         genome
     }
 
+    /*
     pub fn from_printable(printable_genome: &PrintableGenome, pool: &GenePool) -> Self {
         let mut genome = Genome::new(printable_genome.id, printable_genome.generation);
 
@@ -77,6 +100,7 @@ impl Genome {
 
         genome
     }
+    */
 
     pub fn node_count(&self) -> usize {
         self.nodes.len()
@@ -87,7 +111,10 @@ impl Genome {
     }
 
     pub fn enabled_connection_count(&self) -> usize {
-        self.connections.iter().filter(|connection| connection.enabled).count()
+        self.connections
+            .iter()
+            .filter(|connection| connection.enabled)
+            .count()
     }
 
     pub fn id(&self) -> u64 {
@@ -137,37 +164,23 @@ impl Genome {
             .push(index);
     }
 
-    pub fn evaluate(
-        &mut self,
-        input: &[f64],
-        pool: &GenePool,
-        config: &EvaluationConfig,
-    ) -> Vec<f64> {
-        for node in &mut self.nodes {
-            if let NodeType::Input(i) = pool.nodes[node.node_id].node_type {
-                node.evaluation = EvaluationValue {
-                    iteration: self.next_iteration,
-                    value: input[i],
-                };
+    pub fn evaluate(&mut self, input: &[f64], config: &EvaluationConfig) -> Vec<f64> {
+        for (i, value) in input.iter().enumerate() {
+            self.nodes[i].evaluation = EvaluationValue {
+                iteration: self.next_iteration,
+                value: *value,
             }
         }
-        let mut result = Vec::<f64>::new();
-        for i in 0..self.nodes.len() {
-            if let NodeType::Output(out_node_id) = pool.nodes[self.nodes[i].node_id].node_type {
-                result.insert(out_node_id, self.evaluate_node(i, input, config));
-            }
+        let mut result = Vec::with_capacity(self.output_node_count);
+        for i in input.len()..input.len() + self.output_node_count {
+            result.push(self.evaluate_node(i, input, config));
         }
         self.next_iteration += 1;
         result
     }
 
     // node_id bezieht sich auf den Index im Genome
-    fn evaluate_node(
-        &mut self,
-        node_id: usize,
-        input: &[f64],
-        config: &EvaluationConfig,
-    ) -> f64 {
+    fn evaluate_node(&mut self, node_id: usize, input: &[f64], config: &EvaluationConfig) -> f64 {
         if self.nodes[node_id].evaluation.iteration == self.next_iteration {
             self.nodes[node_id].evaluation.value
         } else {
@@ -232,7 +245,13 @@ impl Genome {
         (disjoint * config.c1 + excess * config.c2) / n + weight_difference / similar * config.c3
     }
 
-    pub fn mutate(&mut self, pool: &mut GenePool, config: &MutationConfig, new_id: u64, new_generation: u32) {
+    pub fn mutate(
+        &mut self,
+        pool: &mut GenePool,
+        config: &MutationConfig,
+        new_id: u64,
+        new_generation: u32,
+    ) {
         self.id = new_id;
         self.generation = new_generation;
         self.mutate_connections(config);
@@ -341,8 +360,20 @@ impl Genome {
         &self.connections[*self.connection_mappings.get(&innovation).unwrap()]
     }
 
-    pub fn crossover(&self, other: &Genome, pool: &GenePool, config: &CrossoverConfig, offspring_id: u64, offspring_generation: u32) -> Genome {
-        let mut offspring = Genome::new(offspring_id, offspring_generation);
+    pub fn crossover(
+        &self,
+        other: &Genome,
+        pool: &GenePool,
+        config: &CrossoverConfig,
+        offspring_id: u64,
+        offspring_generation: u32,
+    ) -> Genome {
+        let mut offspring = Genome::new(
+            offspring_id,
+            offspring_generation,
+            self.input_node_count,
+            self.output_node_count,
+        );
 
         let mut my_connections = self.connection_mappings.keys().peekable();
         let mut other_connections = other.connection_mappings.keys().peekable();

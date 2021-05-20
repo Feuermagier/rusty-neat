@@ -8,7 +8,7 @@ pub struct PrintableGenome {
     pub connections: Vec<PrintableConnectionGene>,
     pub nodes: Vec<u64>,
     pub id: u64,
-    pub generation: u32
+    pub generation: u32,
 }
 
 #[derive(Serialize, Deserialize)]

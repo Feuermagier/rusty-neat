@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use druid::{Affine, Color, Event, FontFamily, Point, Rect, RenderContext, Selector, Widget, kurbo::{Circle, Line}, piet::{Text, TextLayout, TextLayoutBuilder}};
+use druid::{
+    kurbo::{Circle, Line},
+    piet::{Text, TextLayout, TextLayoutBuilder},
+    Affine, Color, Event, FontFamily, Point, Rect, RenderContext, Selector, Widget,
+};
 use rusty_neat_interchange::gene_pool::PrintableNodeType;
 
 use crate::{commands, model::genome::Genome};
@@ -27,20 +31,19 @@ const FONT_SIZE: f64 = 12.0;
 
 pub struct GenomeWidget {
     current_transformation: Affine,
-    last_drag_position: Option<Point>
+    last_drag_position: Option<Point>,
 }
 
 impl GenomeWidget {
     pub fn new() -> Self {
         Self {
             current_transformation: initial_transform(),
-            last_drag_position: Option::None
+            last_drag_position: Option::None,
         }
     }
 }
 
 impl Widget<Arc<Genome>> for GenomeWidget {
-
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
@@ -57,7 +60,10 @@ impl Widget<Arc<Genome>> for GenomeWidget {
                         0.9
                     }
                 };
-                self.current_transformation = Affine::translate(event.pos.to_vec2()) * Affine::scale(zoom_factor) * Affine::translate(event.pos.to_vec2() * -1.0) * self.current_transformation;
+                self.current_transformation = Affine::translate(event.pos.to_vec2())
+                    * Affine::scale(zoom_factor)
+                    * Affine::translate(event.pos.to_vec2() * -1.0)
+                    * self.current_transformation;
                 ctx.request_paint();
             }
         }
@@ -74,7 +80,9 @@ impl Widget<Arc<Genome>> for GenomeWidget {
 
         if let Event::MouseMove(event) = event {
             if ctx.is_active() && self.last_drag_position.is_some() {
-                self.current_transformation = Affine::translate(event.pos - self.last_drag_position.unwrap()) * self.current_transformation;
+                self.current_transformation =
+                    Affine::translate(event.pos - self.last_drag_position.unwrap())
+                        * self.current_transformation;
                 self.last_drag_position = Option::Some(event.pos);
                 ctx.request_paint();
             }
@@ -128,7 +136,10 @@ impl Widget<Arc<Genome>> for GenomeWidget {
 
         // Draw connection first so they are placed below notes
         for connection in &data.connections {
-            let line = Line::new(connection.start.actual_position(ctx.size(), OFFSET), connection.end.actual_position(ctx.size(), OFFSET));
+            let line = Line::new(
+                connection.start.actual_position(ctx.size(), OFFSET),
+                connection.end.actual_position(ctx.size(), OFFSET),
+            );
             let color = Color::from_hex_str({
                 if !connection.enabled || connection.weight == 0.0 {
                     DISABLED_CONNECTION
@@ -137,8 +148,14 @@ impl Widget<Arc<Genome>> for GenomeWidget {
                 } else {
                     NEGATIVE_CONNECTION
                 }
-            }).unwrap();
-            ctx.stroke(line, &color, (connection.weight.abs() * CONNECTION_SCALE).clamp(MIN_CONNECTION_THICKNESS, MAX_CONNECTION_THICKNESS));
+            })
+            .unwrap();
+            ctx.stroke(
+                line,
+                &color,
+                (connection.weight.abs() * CONNECTION_SCALE)
+                    .clamp(MIN_CONNECTION_THICKNESS, MAX_CONNECTION_THICKNESS),
+            );
         }
 
         for node in &data.nodes {
@@ -148,20 +165,34 @@ impl Widget<Arc<Genome>> for GenomeWidget {
             let color = match node.node_type.as_ref() {
                 PrintableNodeType::Input(_) => Color::from_hex_str(INPUT_NODE_COLOR).unwrap(),
                 PrintableNodeType::Output(_) => Color::from_hex_str(OUTPUT_NODE_COLOR).unwrap(),
-                PrintableNodeType::Hidden => Color::from_hex_str(HIDDEN_NODE_COLOR).unwrap()
+                PrintableNodeType::Hidden => Color::from_hex_str(HIDDEN_NODE_COLOR).unwrap(),
             };
             ctx.fill(circle, &color);
 
             let text = match node.node_type.as_ref() {
-                PrintableNodeType::Input(id) => node.id.to_string() + " (In " + id.to_string().as_str() + ")",
-                PrintableNodeType::Output(id) => node.id.to_string() + " (Out " + id.to_string().as_str() + ")",
-                PrintableNodeType::Hidden => node.id.to_string()
+                PrintableNodeType::Input(id) => {
+                    node.id.to_string() + " (In " + id.to_string().as_str() + ")"
+                }
+                PrintableNodeType::Output(id) => {
+                    node.id.to_string() + " (Out " + id.to_string().as_str() + ")"
+                }
+                PrintableNodeType::Hidden => node.id.to_string(),
             };
-            let text_layout = ctx.text().new_text_layout(text)
+            let text_layout = ctx
+                .text()
+                .new_text_layout(text)
                 .font(FontFamily::SANS_SERIF, FONT_SIZE)
                 .text_color(Color::from_hex_str(TEXT_COLOR).unwrap())
-                .build().unwrap();
-            ctx.draw_text(&text_layout, pixel_position - (text_layout.size().width / 2.0, text_layout.size().height / 2.0));
+                .build()
+                .unwrap();
+            ctx.draw_text(
+                &text_layout,
+                pixel_position
+                    - (
+                        text_layout.size().width / 2.0,
+                        text_layout.size().height / 2.0,
+                    ),
+            );
         }
 
         ctx.restore().unwrap();

@@ -1,4 +1,9 @@
-use std::{cell::RefCell, fmt, rc::Rc, sync::{Arc, Mutex, RwLock}};
+use std::{
+    cell::RefCell,
+    fmt,
+    rc::Rc,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use rusty_neat_interchange::organism::PrintableOrganism;
 use serde::{Deserialize, Serialize};
@@ -11,25 +16,20 @@ use crate::{
 #[derive(Clone)]
 pub struct Organism {
     pub(crate) genome: Genome,
-    pool: Arc<RwLock<GenePool>>,
     evaluation_config: Arc<EvaluationConfig>,
     pub fitness: Option<f64>,
 }
 
 impl Organism {
-    pub(crate) fn new(
-        genome: Genome,
-        pool: Arc<RwLock<GenePool>>,
-        evaluation_config: Arc<EvaluationConfig>,
-    ) -> Organism {
+    pub(crate) fn new(genome: Genome, evaluation_config: Arc<EvaluationConfig>) -> Organism {
         Organism {
             genome,
-            pool,
             evaluation_config,
             fitness: None,
         }
     }
 
+    /*
     pub fn from_printable(
         printable: &PrintableOrganism,
         pool: Arc<RwLock<GenePool>>,
@@ -42,10 +42,10 @@ impl Organism {
             fitness: printable.fitness,
         }
     }
+    */
 
     pub fn evaluate(&mut self, input: &[f64]) -> Vec<f64> {
-        self.genome
-            .evaluate(input, &self.pool.read().unwrap(), self.evaluation_config.as_ref())
+        self.genome.evaluate(input, self.evaluation_config.as_ref())
     }
 
     pub(crate) fn distance(&self, other: &Organism, config: Arc<DistanceConfig>) -> f64 {

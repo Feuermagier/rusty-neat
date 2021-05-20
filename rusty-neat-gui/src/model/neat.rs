@@ -12,5 +12,5 @@ pub struct NeatModel {
     pub current_generation: Option<Arc<Generation>>,
     pub current_species: Option<Arc<Species>>,
     pub current_genome: Option<Arc<Genome>>,
-    pub result: Option<NeatResult>
+    pub result: Option<NeatResult>,
 }

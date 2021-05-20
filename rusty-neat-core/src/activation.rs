@@ -23,7 +23,7 @@ fn identity(x: f64) -> f64 {
 }
 
 fn sigmoid(x: f64) -> f64 {
-    1.0 / (1.0 + (-4.9 * x).exp())
+    1.0 / (1.0 + (x).exp())
 }
 
 fn relu(x: f64) -> f64 {

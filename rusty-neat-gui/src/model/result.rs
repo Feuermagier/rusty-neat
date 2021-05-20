@@ -7,7 +7,7 @@ use super::genome::Genome;
 #[derive(Clone, Data, Lens)]
 pub struct NeatResult {
     pub best_genome: Arc<Genome>,
-    pub best_fitness: f64
+    pub best_fitness: f64,
 }
 
 impl From<&PrintableNeatResult> for NeatResult {

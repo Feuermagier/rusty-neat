@@ -14,7 +14,7 @@ impl FileType {
         match self {
             FileType::PrettyJSON => ".json",
             FileType::CompactJSON => ".cjson",
-            FileType::Bincode => ".bin"
+            FileType::Bincode => ".bin",
         }
     }
 
@@ -23,7 +23,7 @@ impl FileType {
             "json" => Ok(FileType::PrettyJSON),
             "cjson" => Ok(FileType::CompactJSON),
             "bin" => Ok(FileType::Bincode),
-            _ => Err("Unknown file extension")
+            _ => Err("Unknown file extension"),
         }
     }
 }
@@ -53,13 +53,23 @@ pub(crate) fn read<T: DeserializeOwned>(path: &Path) -> Result<T, String> {
     }
 
     let file_content = fs::read(path).map_err(|e| stringify(e, path))?;
-    match FileType::from_ext(path.extension().expect("file has no extension").to_str().expect("Invalid extension: Could not be converted to a rust string"))? {
-        FileType::PrettyJSON
-        | FileType::CompactJSON => serde_json::from_slice(&file_content).map_err(|e| stringify(e, path)),
-        FileType::Bincode => bincode::deserialize(&file_content).map_err(|e| stringify(e, path))
+    match FileType::from_ext(
+        path.extension()
+            .expect("file has no extension")
+            .to_str()
+            .expect("Invalid extension: Could not be converted to a rust string"),
+    )? {
+        FileType::PrettyJSON | FileType::CompactJSON => {
+            serde_json::from_slice(&file_content).map_err(|e| stringify(e, path))
+        }
+        FileType::Bincode => bincode::deserialize(&file_content).map_err(|e| stringify(e, path)),
     }
 }
 
 fn stringify<E: Error>(err: E, file: &Path) -> String {
-    format!("Error while reading file '{}': {}", file.to_str().unwrap_or("<path not printable>"), err.to_string())
+    format!(
+        "Error while reading file '{}': {}",
+        file.to_str().unwrap_or("<path not printable>"),
+        err.to_string()
+    )
 }

@@ -1,4 +1,8 @@
-use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use rand::prelude::SliceRandom;
 use rusty_neat_interchange::species::PrintableSpecies;
@@ -14,31 +18,25 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub(crate) struct Species {
-    pub(crate) organisms: Vec<Rc<Organism>>,
+    pub(crate) organisms: Vec<Arc<Organism>>,
     pub(crate) id: usize,
-    representative: Rc<Organism>,
+    representative: Arc<Organism>,
     fitness: Option<f64>,
-    pool: Arc<RwLock<GenePool>>,
     config: Arc<SpeciesConfig>,
 }
 
 impl Species {
-    pub fn new(
-        representative: Rc<Organism>,
-        pool: Arc<RwLock<GenePool>>,
-        config: Arc<SpeciesConfig>,
-        id: usize
-    ) -> Species {
+    pub fn new(representative: Arc<Organism>, config: Arc<SpeciesConfig>, id: usize) -> Species {
         Species {
             organisms: Vec::new(),
             representative,
             fitness: Option::None,
-            pool,
             config,
-            id
+            id,
         }
     }
 
+    /*
     pub fn from_printable(
         printable: &PrintableSpecies,
         pool: Arc<RwLock<GenePool>>,
@@ -46,7 +44,7 @@ impl Species {
         evaluation_config: Arc<EvaluationConfig>,
     ) -> Self {
         let mut species = Species::new(
-            Rc::from(Organism::from_printable(
+            Arc::from(Organism::from_printable(
                 &printable.representative,
                 Arc::clone(&pool),
                 Arc::clone(&evaluation_config),
@@ -59,7 +57,7 @@ impl Species {
         species.fitness = printable.fitness;
 
         for organism in &printable.organisms {
-            species.organisms.push(Rc::from(Organism::from_printable(
+            species.organisms.push(Arc::from(Organism::from_printable(
                 organism,
                 Arc::clone(&pool),
                 Arc::clone(&evaluation_config),
@@ -68,6 +66,7 @@ impl Species {
 
         species
     }
+    */
 
     pub fn adjusted_fitness(&mut self) -> f64 {
         if self.fitness.is_none() {
@@ -77,20 +76,20 @@ impl Species {
         self.fitness.unwrap()
     }
 
-    pub fn add_organism(&mut self, organism: Rc<Organism>) {
+    pub fn add_organism(&mut self, organism: Arc<Organism>) {
         self.organisms.push(organism);
         self.fitness = None;
     }
 
-    pub fn matches(&self, organism: Rc<Organism>, config: Arc<DistanceConfig>) -> bool {
+    pub fn matches(&self, organism: Arc<Organism>, config: Arc<DistanceConfig>) -> bool {
         self.representative.distance(&organism, config) <= self.config.species_distance_tolerance
     }
 
-    pub fn select_new_representative(&self) -> Rc<Organism> {
+    pub fn select_new_representative(&self) -> Arc<Organism> {
         match self.config.representative {
-            ReprentativeSelection::First => Rc::clone(self.organisms.iter().next().unwrap()),
+            ReprentativeSelection::First => Arc::clone(self.organisms.iter().next().unwrap()),
             ReprentativeSelection::Random => {
-                Rc::clone(self.organisms.choose(&mut rand::thread_rng()).unwrap())
+                Arc::clone(self.organisms.choose(&mut rand::thread_rng()).unwrap())
             }
         }
     }
@@ -99,21 +98,23 @@ impl Species {
         if self.organisms.is_empty() {
             None
         } else {
-            Some(match self.config.fitness {
-                FitnessStrategy::Best => self
-                    .organisms
-                    .iter()
-                    .map(|o| o.fitness.unwrap())
-                    .max_by(|x, y| x.partial_cmp(y).unwrap())
-                    .unwrap(),
-                FitnessStrategy::Mean => {
-                    self.organisms
+            Some(
+                match self.config.fitness {
+                    FitnessStrategy::Best => self
+                        .organisms
                         .iter()
                         .map(|o| o.fitness.unwrap())
-                        .sum::<f64>()
-                        / self.organisms.len() as f64
-                }
-            } / self.organisms.len() as f64) // Die Fitness wird durch die Anzahl der Organismen in der Spezies geteilt (Explicit Fitness Sharing)
+                        .max_by(|x, y| x.partial_cmp(y).unwrap())
+                        .unwrap(),
+                    FitnessStrategy::Mean => {
+                        self.organisms
+                            .iter()
+                            .map(|o| o.fitness.unwrap())
+                            .sum::<f64>()
+                            / self.organisms.len() as f64
+                    }
+                } / self.organisms.len() as f64,
+            ) // Die Fitness wird durch die Anzahl der Organismen in der Spezies geteilt (Explicit Fitness Sharing)
         }
     }
 }
@@ -124,7 +125,7 @@ impl Into<PrintableSpecies> for &Species {
             representative: self.representative.as_ref().into(),
             organisms: Vec::with_capacity(self.organisms.len()),
             fitness: self.try_adjusted_fitness(),
-            id: self.id
+            id: self.id,
         };
 
         for organism in &self.organisms {
