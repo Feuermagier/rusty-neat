@@ -1,12 +1,9 @@
 use std::{
-    cell::RefCell,
     fmt,
-    rc::Rc,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc},
 };
 
 use rusty_neat_interchange::organism::PrintableOrganism;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     gene_pool::GenePool,
@@ -29,20 +26,17 @@ impl Organism {
         }
     }
 
-    /*
     pub fn from_printable(
         printable: &PrintableOrganism,
-        pool: Arc<RwLock<GenePool>>,
+        pool: &GenePool,
         evaluation_config: Arc<EvaluationConfig>,
     ) -> Self {
         Organism {
-            genome: Genome::from_printable(&printable.genome, &pool.read().unwrap()),
-            pool: Arc::clone(&pool),
+            genome: Genome::from_printable(&printable.genome, pool),
             evaluation_config,
             fitness: printable.fitness,
         }
     }
-    */
 
     pub fn evaluate(&mut self, input: &[f64]) -> Vec<f64> {
         self.genome.evaluate(input, self.evaluation_config.as_ref())

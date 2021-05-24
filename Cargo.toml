@@ -3,5 +3,6 @@
 members = [
     "rusty-neat-core",
 	"rusty-neat-gui",
-    "rusty-neat-interchange"
+    "rusty-neat-interchange",
+    "rusty-neat-pinball"
 ]

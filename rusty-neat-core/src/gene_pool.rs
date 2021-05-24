@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc, usize};
+use std::usize;
 
 use hashbrown::HashMap;
 use rusty_neat_interchange::gene_pool::{
@@ -198,7 +198,7 @@ impl Into<PrintableGenePool> for &GenePool {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeType {
     Input(usize),
     Hidden,

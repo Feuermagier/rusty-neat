@@ -1,18 +1,11 @@
 use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, RwLock},
+    sync::{Arc},
 };
 
 use rand::prelude::SliceRandom;
 use rusty_neat_interchange::species::PrintableSpecies;
 
-use crate::{
-    config_util,
-    gene_pool::GenePool,
-    genome::{DistanceConfig, EvaluationConfig},
-    organism::Organism,
-};
+use crate::{config_util, gene_pool::GenePool, genome::{DistanceConfig, EvaluationConfig}, organism::Organism};
 
 use serde::{Deserialize, Serialize};
 
@@ -36,20 +29,18 @@ impl Species {
         }
     }
 
-    /*
     pub fn from_printable(
         printable: &PrintableSpecies,
-        pool: Arc<RwLock<GenePool>>,
+        pool: &GenePool,
         config: Arc<SpeciesConfig>,
         evaluation_config: Arc<EvaluationConfig>,
     ) -> Self {
         let mut species = Species::new(
             Arc::from(Organism::from_printable(
                 &printable.representative,
-                Arc::clone(&pool),
+                pool,
                 Arc::clone(&evaluation_config),
             )),
-            Arc::clone(&pool),
             Arc::clone(&config),
             printable.id
         );
@@ -59,14 +50,13 @@ impl Species {
         for organism in &printable.organisms {
             species.organisms.push(Arc::from(Organism::from_printable(
                 organism,
-                Arc::clone(&pool),
+                pool,
                 Arc::clone(&evaluation_config),
             )));
         }
 
         species
     }
-    */
 
     pub fn adjusted_fitness(&mut self) -> f64 {
         if self.fitness.is_none() {

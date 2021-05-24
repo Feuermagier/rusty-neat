@@ -1,11 +1,10 @@
 use std::{
-    borrow::BorrowMut,
-    fmt::{write, Display},
+    fmt::Display,
     path::Path,
 };
 
 use rand::Rng;
-use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusty_neat_core::{gene_pool::GenePool, organism::Organism, population::Population};
 
 const FIELD_WIDTH: usize = 7;
@@ -40,13 +39,13 @@ fn neat() {
                     for j in i + 1..group.len() {
                         let result = play(group.get(i), group.get(j));
                         match result {
-                            GameResult::FIRST_PLAYER_WON => {
+                            GameResult::FirstPlayerWon => {
                                 group.get(i).fitness = Some(group.get(i).fitness.unwrap() + 1.0);
                             }
-                            GameResult::SECOND_PLAYER_WON => {
+                            GameResult::SecondPlayerWon => {
                                 group.get(j).fitness = Some(group.get(j).fitness.unwrap() + 1.0);
                             }
-                            GameResult::TIE => {
+                            GameResult::Tie => {
                                 group.get(i).fitness = Some(group.get(i).fitness.unwrap() + 0.5);
                                 group.get(j).fitness = Some(group.get(j).fitness.unwrap() + 0.5);
                             }
@@ -125,27 +124,27 @@ fn play(first: &mut Organism, second: &mut Organism) -> GameResult {
             current_turn += 1;
         } else {
             if board.next_player == 1.0 {
-                return GameResult::SECOND_PLAYER_WON;
+                return GameResult::SecondPlayerWon;
             } else {
-                return GameResult::FIRST_PLAYER_WON;
+                return GameResult::FirstPlayerWon;
             }
         }
     }
     if current_turn != FIELD_WIDTH * FIELD_HEIGHT {
         if board.next_player == 1.0 {
-            GameResult::FIRST_PLAYER_WON
+            GameResult::FirstPlayerWon
         } else {
-            GameResult::SECOND_PLAYER_WON
+            GameResult::SecondPlayerWon
         }
     } else {
-        GameResult::TIE
+        GameResult::Tie
     }
 }
 
 enum GameResult {
-    FIRST_PLAYER_WON,
-    SECOND_PLAYER_WON,
-    TIE,
+    FirstPlayerWon,
+    SecondPlayerWon,
+    Tie,
 }
 
 struct Board {

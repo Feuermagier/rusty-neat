@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::{
     cmp::max,
     collections::BTreeMap,
-    rc::Rc,
-    sync::{atomic::AtomicU64, Arc},
     usize,
 };
 
@@ -81,26 +79,6 @@ impl Genome {
         genome.generation = generation;
         genome
     }
-
-    /*
-    pub fn from_printable(printable_genome: &PrintableGenome, pool: &GenePool) -> Self {
-        let mut genome = Genome::new(printable_genome.id, printable_genome.generation);
-
-        for node in &printable_genome.nodes {
-            genome.add_node(*node as usize);
-        }
-
-        for connection in &printable_genome.connections {
-            genome.add_connection(
-                pool.connections[connection.innovation as usize],
-                connection.weight,
-                connection.enabled,
-            );
-        }
-
-        genome
-    }
-    */
 
     pub fn node_count(&self) -> usize {
         self.nodes.len()
@@ -434,6 +412,32 @@ impl Genome {
     pub fn get_status_of_connection(&self, node_id: usize) -> (f64, bool) {
         let gene = &self.connections[*self.connection_mappings.get(&node_id).unwrap()];
         (gene.weight, gene.enabled)
+    }
+
+    pub fn from_printable(printable_genome: &PrintableGenome, pool: &GenePool) -> Self {
+        let mut genome = Genome::new(
+            printable_genome.id,
+            printable_genome.generation,
+            pool.input_count,
+            pool.output_count,
+        );
+
+        for node in &printable_genome.nodes {
+            // Skip in and out nodes
+            if pool.nodes[*node as usize].node_type == NodeType::Hidden {
+                genome.add_node(*node as usize);   
+            }
+        }
+
+        for connection in &printable_genome.connections {
+            genome.add_connection(
+                pool.connections[connection.innovation as usize],
+                connection.weight,
+                connection.enabled,
+            );
+        }
+
+        genome
     }
 }
 

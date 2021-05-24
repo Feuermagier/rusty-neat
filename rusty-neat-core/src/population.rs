@@ -1,11 +1,9 @@
 use core::f64;
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     fs,
     path::Path,
-    rc::Rc,
-    sync::{Arc, Mutex, RwLock},
+    sync::Arc,
 };
 
 use rusty_neat_interchange::{
