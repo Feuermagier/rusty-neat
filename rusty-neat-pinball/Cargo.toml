@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 rapier2d = {version = "0.8.0", features = ["simd-stable"]}
+nalgebra = {version = "0.26", features = ["mint"]}
+ggez = "0.5"
+mint = "0.5"
+glam = {version = "0.15", features = ["mint"]}
